@@ -5,7 +5,8 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:fitsSystemWindows="true"
-    tools:context="com.habosa.yoursquare.PlacesActivity">
+    tools:context="com.habosa.yoursquare.PlacesActivity"
+    tools:menu="menu_places">
 
     <android.support.design.widget.AppBarLayout
         android:id="@+id/app_bar"
@@ -27,7 +28,20 @@
                 android:layout_width="match_parent"
                 android:layout_height="?attr/actionBarSize"
                 app:layout_collapseMode="pin"
-                app:popupTheme="@style/AppTheme.PopupOverlay" />
+                app:popupTheme="@style/AppTheme.PopupOverlay">
+
+
+                <EditText
+                    android:id="@+id/edit_text_search"
+                    android:layout_width="200dp"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="top|right"
+                    android:layout_marginRight="20dp"
+                    android:hint="Start typing..."
+                    android:visibility="gone"
+                    tools:visibility="visible" />
+
+            </android.support.v7.widget.Toolbar>
 
         </android.support.design.widget.CollapsingToolbarLayout>
     </android.support.design.widget.AppBarLayout>
@@ -36,7 +50,8 @@
         android:id="@+id/recycler_view_places"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        app:layout_behavior="@string/appbar_scrolling_view_behavior" />
+        app:layout_behavior="@string/appbar_scrolling_view_behavior"
+        tools:listitem="@layout/item_place"/>
 
     <android.support.design.widget.FloatingActionButton
         android:id="@+id/fab"

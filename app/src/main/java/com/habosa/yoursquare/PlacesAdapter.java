@@ -1,6 +1,7 @@
 package com.habosa.yoursquare;
 
 import android.content.Context;
+import android.database.Cursor;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -9,20 +10,19 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import com.habosa.yoursquare.model.Place;
-
-import java.util.Arrays;
-import java.util.List;
+import com.habosa.yoursquare.model.PlacesSource;
 
 public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder> {
 
     private static final String TAG = "PlacesAdapter";
 
-    private List<Place> mPlaces = Arrays.asList(
-            new Place("Pete's BBQ", "2322 Mission Street, San Francisco", Arrays.asList("cheap", "bbq", "mission")),
-            new Place("Taqueria El Buen Sabor", "978 Valencia Street, San Francisco", Arrays.asList("mexican", "taco", "burrito")),
-            new Place("Arinell Pizzeria", "506 Valencia Street, San Francisco", Arrays.asList("pizza", "cheap", "slice")),
-            new Place("Latin American Club ", "896 22nd Street, San Francisco", Arrays.asList("bar", "margarita", "dive"))
-    );
+    private PlacesSource mSource;
+    private Cursor mCursor;
+
+    public PlacesAdapter(PlacesSource source) {
+        mSource = source;
+        mCursor = source.getAllCursor();
+    }
 
     @Override
     public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
@@ -34,20 +34,39 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, int position) {
+    public void onBindViewHolder(ViewHolder holder, final int position) {
         Log.d(TAG, "onBindViewHolder:" + position);
 
-        Place p = mPlaces.get(position);
-        Place.Decorator pd = new Place.Decorator(p);
+        // Get Place from Cursor
+        mCursor.moveToPosition(position);
+        final Place p = mSource.fromCursor(mCursor);
+        final Place.Decorator pd = new Place.Decorator(p);
 
-        holder.titleView.setText(p.getTitle());
+        // Display place info
+        holder.titleView.setText(p.getName());
         holder.addressView.setText(p.getAddress());
         holder.tagsView.setText(pd.getTagsString());
+
+        // Click listener
+        holder.deleteButton.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View v) {
+                // TODO(samstern): How to make this "smooth"?
+                mSource.delete(p);
+                reloadItems();
+            }
+        });
     }
 
     @Override
     public int getItemCount() {
-        return mPlaces.size();
+        return mCursor.getCount();
+    }
+
+    public void reloadItems() {
+        mCursor = mSource.getAllCursor();
+        notifyDataSetChanged();
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
@@ -55,6 +74,7 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         public TextView titleView;
         public TextView addressView;
         public TextView tagsView;
+        public View deleteButton;
 
         public ViewHolder(View itemView) {
             super(itemView);
@@ -62,6 +82,7 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
             titleView = (TextView) itemView.findViewById(R.id.place_text_title);
             addressView = (TextView) itemView.findViewById(R.id.place_text_address);
             tagsView = (TextView) itemView.findViewById(R.id.place_tags);
+            deleteButton = itemView.findViewById(R.id.place_button_delete);
         }
     }
 

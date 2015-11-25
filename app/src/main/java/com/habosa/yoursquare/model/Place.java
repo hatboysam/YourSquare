@@ -1,8 +1,14 @@
 package com.habosa.yoursquare.model;
 
+import java.util.ArrayList;
 import java.util.List;
 
 public class Place {
+
+    private long id;
+    private String name;
+    private String address;
+    private List<String> tags = new ArrayList<>();
 
     public static class Decorator {
 
@@ -26,24 +32,28 @@ public class Place {
 
     }
 
-    private String title;
-    private String address;
-    private List<String> tags;
-
     public Place() {}
 
-    public Place(String title, String address, List<String> tags) {
-        this.title = title;
+    public Place(String name, String address, List<String> tags) {
+        this.name = name;
         this.address = address;
         this.tags = tags;
     }
 
-    public String getTitle() {
-        return title;
+    public long getId() {
+        return id;
     }
 
-    public void setTitle(String title) {
-        this.title = title;
+    public void setId(long id) {
+        this.id = id;
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 
     public String getAddress() {

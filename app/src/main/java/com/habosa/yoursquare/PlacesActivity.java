@@ -7,6 +7,8 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
+import android.text.TextUtils;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -19,6 +21,8 @@ import java.util.ArrayList;
 import java.util.Random;
 
 public class PlacesActivity extends AppCompatActivity {
+
+    private static final String TAG = "PlacesActivity";
 
     private PlacesSource mPlacesSource;
 
@@ -40,6 +44,7 @@ public class PlacesActivity extends AppCompatActivity {
         mSearchField = (EditText) findViewById(R.id.edit_text_search);
 
         // Open Database
+        // TODO(samstern): close
         mPlacesSource = new PlacesSource(this);
         mPlacesSource.open();
 
@@ -57,6 +62,22 @@ public class PlacesActivity extends AppCompatActivity {
                 Place place = new Place(title, "123 Jamaica Street, AmericaTown", new ArrayList<String>());
                 mPlacesSource.create(place);
                 mAdapter.reloadItems();
+            }
+        });
+
+        // Search Listener
+        mSearchField.addTextChangedListener(new DebouncingWatcher() {
+            @Override
+            public void onNewText(String text) {
+                Log.d(TAG, "onNewText:" + text);
+                // TODO(samstern): act on empty, end search, one line, trim, etc
+                text = text.trim();
+                if (!TextUtils.isEmpty(text)) {
+                    mAdapter.setCursor(mPlacesSource.fuzzySearch(text));
+                } else {
+                    mAdapter.setCursor(mPlacesSource.getAll());
+                }
+                mAdapter.notifyDataSetChanged();
             }
         });
     }

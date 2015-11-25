@@ -4,17 +4,20 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.util.Log;
 
 import com.habosa.yoursquare.sql.PlacesSQLHelper;
+import com.habosa.yoursquare.sql.QueryBuilder;
 
 /**
  * Created by samstern on 11/24/15.
  */
 public class PlacesSource {
 
+    private static final String TAG = "PlacesSource";
+
     private SQLiteDatabase mDatabase;
     private PlacesSQLHelper mHelper;
-    private Cursor mAllCursor;
 
     private static final String[] COLUMNS = new String[]{
             PlacesSQLHelper.COL_ID,
@@ -31,10 +34,6 @@ public class PlacesSource {
     }
 
     public void close() {
-        if (mAllCursor != null) {
-            mAllCursor.close();
-        }
-
         mHelper.close();
     }
 
@@ -54,22 +53,35 @@ public class PlacesSource {
             throw new IllegalArgumentException("Can't delete place without ID!");
         }
 
-        String query = String.format("%s = %s", PlacesSQLHelper.COL_ID, place.getId());
+        String query = new QueryBuilder().equals(PlacesSQLHelper.COL_ID, place.getId()).build();
         int numRows = mDatabase.delete(PlacesSQLHelper.TABLE, query, null);
         return (numRows > 0);
     }
 
-    public Cursor getAllCursor() {
-        if (mAllCursor != null) {
-            mAllCursor.close();
-        }
-        mAllCursor = mDatabase.query(PlacesSQLHelper.TABLE, COLUMNS, null,
-                null, null, null, null);
-        return mAllCursor;
+    public Cursor getAll() {
+        return query(null);
     }
 
+    public Cursor fuzzySearch(String term) {
+        // TODO(samstern): When is this cursor closed?
+        String query = new QueryBuilder()
+                .contains(PlacesSQLHelper.COL_NAME, term)
+                .or()
+                .contains(PlacesSQLHelper.COL_ADDRESS, term)
+                .build();
+
+        return query(query);
+    }
+
+    public Cursor query(String query) {
+        Log.d(TAG, "query:" + query);
+        return mDatabase.query(PlacesSQLHelper.TABLE, COLUMNS, query,
+                null, null, null, null);
+    }
+
+
     public Place getBy(String column, Object value) {
-        String query = String.format("%s = %s", column, value);
+        String query = new QueryBuilder().equals(column, value).build();
         Cursor cursor = mDatabase.query(PlacesSQLHelper.TABLE, COLUMNS, query,
                 null, null, null, null);
         cursor.moveToFirst();

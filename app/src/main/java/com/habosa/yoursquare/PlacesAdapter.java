@@ -21,7 +21,7 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
 
     public PlacesAdapter(PlacesSource source) {
         mSource = source;
-        mCursor = source.getAllCursor();
+        mCursor = source.getAll();
     }
 
     @Override
@@ -65,8 +65,17 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
     }
 
     public void reloadItems() {
-        mCursor = mSource.getAllCursor();
+        // TODO(samstern): is this method necessary?
+        mCursor = mSource.getAll();
         notifyDataSetChanged();
+    }
+
+    public void setCursor(Cursor cursor) {
+        if (mCursor != null) {
+            mCursor.close();
+        }
+
+        mCursor = cursor;
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {

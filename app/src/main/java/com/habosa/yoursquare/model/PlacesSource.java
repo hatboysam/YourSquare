@@ -77,8 +77,9 @@ public class PlacesSource {
 
     public Cursor query(String query) {
         Log.d(TAG, "query:" + query);
+        String orderBy = String.format("%s DESC", PlacesSQLHelper.COL_ID);
         return mDatabase.query(PlacesSQLHelper.TABLE, COLUMNS, query,
-                null, null, null, null);
+                null, null, null, orderBy);
     }
 
 

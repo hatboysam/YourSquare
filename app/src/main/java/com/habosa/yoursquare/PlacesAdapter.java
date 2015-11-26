@@ -4,7 +4,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -40,8 +39,6 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
 
     @Override
     public void onBindViewHolder(ViewHolder holder, final int position) {
-        Log.d(TAG, "onBindViewHolder:" + position);
-
         // Get Place from Cursor
         mCursor.moveToPosition(position);
         final Place p = mSource.fromCursor(mCursor);
@@ -52,20 +49,22 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         holder.addressView.setText(p.getAddress());
         holder.tagsView.setText(pd.getTagsString());
 
-        // Load Image
+        // Load image
         int gray = ContextCompat.getColor(holder.imageView.getContext(), android.R.color.darker_gray);
         holder.imageView.setImageDrawable(null);
         holder.imageView.setBackgroundColor(gray);
         new LoadPlaceImageTask(p.getGooglePlaceId(), holder.imageView, mGoogleApiClient).execute();
 
-        // Click listener
+        // Delete click listener
         holder.deleteButton.setOnClickListener(new View.OnClickListener() {
+
+            final int mPosition = position;
 
             @Override
             public void onClick(View v) {
-                // TODO(samstern): How to make this "smooth"?
                 mSource.delete(p);
-                reloadItems();
+                setCursor(mSource.getAll());
+                notifyItemRemoved(mPosition);
             }
         });
     }
@@ -73,12 +72,6 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
     @Override
     public int getItemCount() {
         return mCursor.getCount();
-    }
-
-    public void reloadItems() {
-        // TODO(samstern): is this method necessary?
-        mCursor = mSource.getAll();
-        notifyDataSetChanged();
     }
 
     public void setCursor(Cursor cursor) {

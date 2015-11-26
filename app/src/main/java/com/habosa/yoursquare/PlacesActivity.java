@@ -1,6 +1,7 @@
 package com.habosa.yoursquare;
 
 import android.Manifest;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
@@ -15,9 +16,11 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
 import android.widget.Toast;
 
@@ -40,6 +43,7 @@ public class PlacesActivity extends AppCompatActivity implements
 
     private PlacesSource mPlacesSource;
     private PlacesAdapter mAdapter;
+    private LinearLayoutManager mLayoutManager;
     private GoogleApiClient mGoogleApiClient;
 
     private FloatingActionButton mFab;
@@ -72,7 +76,8 @@ public class PlacesActivity extends AppCompatActivity implements
 
         // Set up RecyclerView
         mAdapter = new PlacesAdapter(mPlacesSource, mGoogleApiClient);
-        mRecycler.setLayoutManager(new LinearLayoutManager(this));
+        mLayoutManager = new LinearLayoutManager(this);
+        mRecycler.setLayoutManager(mLayoutManager);
         mRecycler.setAdapter(mAdapter);
 
         // Click listener(s)
@@ -84,14 +89,28 @@ public class PlacesActivity extends AppCompatActivity implements
             @Override
             public void onNewText(String text) {
                 Log.d(TAG, "onNewText:" + text);
-                // TODO(samstern): act on empty, end search, one line, trim, etc
                 text = text.trim();
                 if (!TextUtils.isEmpty(text)) {
+                    // Search for entered text
                     mAdapter.setCursor(mPlacesSource.fuzzySearch(text));
                 } else {
+                    // Search for all
                     mAdapter.setCursor(mPlacesSource.getAll());
                 }
                 mAdapter.notifyDataSetChanged();
+            }
+        });
+
+        // Search text key listener
+        mSearchField.setOnKeyListener(new View.OnKeyListener() {
+            @Override
+            public boolean onKey(View v, int keyCode, KeyEvent event) {
+                if (keyCode == KeyEvent.KEYCODE_ENTER) {
+                    // Consume enter events
+                    hideKeyboard();
+                    return true;
+                }
+                return false;
             }
         });
     }
@@ -111,9 +130,14 @@ public class PlacesActivity extends AppCompatActivity implements
                 myPlace.setName(place.getName().toString());
                 myPlace.setAddress(place.getAddress().toString());
                 mPlacesSource.create(myPlace);
-                mAdapter.reloadItems();
-            } else {
-                // TODO(samstern): Handle
+
+                // Notify the RecyclerView that a new item is at the top
+                mAdapter.setCursor(mPlacesSource.getAll());
+                mAdapter.notifyItemInserted(0);
+                mRecycler.smoothScrollToPosition(0);
+
+            } else if (resultCode != RESULT_CANCELED) {
+                Toast.makeText(this, "Error opening Place Picker", Toast.LENGTH_SHORT).show();
             }
         }
     }
@@ -166,9 +190,22 @@ public class PlacesActivity extends AppCompatActivity implements
                 .alpha(1.0f)
                 .setDuration(300)
                 .start();
+
+        // Hide the add button
+        ViewCompat.animate(mFab)
+                .scaleX(0.0f)
+                .scaleY(0.0f)
+                .setDuration(300)
+                .start();
     }
 
+    // TODO(samstern): track searching state and remove in onBackPressed
     private void endSearch() {
+        // Clear search term from field (if it exists, to avoid flicker)
+        if (!TextUtils.isEmpty(mSearchField.getText().toString().trim())) {
+            mSearchField.setText(null);
+        }
+
         // Hide the search field
         View searchLayout = findViewById(R.id.layout_search);
         searchLayout.setVisibility(View.GONE);
@@ -176,6 +213,21 @@ public class PlacesActivity extends AppCompatActivity implements
                 .alpha(0.0f)
                 .setDuration(300)
                 .start();
+
+        // Show the add button
+        ViewCompat.animate(mFab)
+                .scaleX(1.0f)
+                .scaleY(1.0f)
+                .setDuration(300)
+                .start();
+    }
+
+    private void hideKeyboard() {
+        View view = this.getCurrentFocus();
+        if (view != null) {
+            InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
+            imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
+        }
     }
 
     private boolean hasPermissions() {
@@ -225,7 +277,7 @@ public class PlacesActivity extends AppCompatActivity implements
         int id = item.getItemId();
         switch (id) {
             case R.id.action_settings:
-                // TODO
+                // TODO(samstern): settings screen
                 return true;
             case R.id.action_search:
                 beginSearch();

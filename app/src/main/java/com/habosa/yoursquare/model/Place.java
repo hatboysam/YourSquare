@@ -6,6 +6,7 @@ import java.util.List;
 public class Place {
 
     private long id;
+    private String googlePlaceId;
     private String name;
     private String address;
     private List<String> tags = new ArrayList<>();
@@ -46,6 +47,14 @@ public class Place {
 
     public void setId(long id) {
         this.id = id;
+    }
+
+    public String getGooglePlaceId() {
+        return googlePlaceId;
+    }
+
+    public void setGooglePlaceId(String googlePlaceId) {
+        this.googlePlaceId = googlePlaceId;
     }
 
     public String getName() {

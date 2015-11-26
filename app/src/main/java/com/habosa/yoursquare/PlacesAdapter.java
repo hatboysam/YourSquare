@@ -2,13 +2,16 @@ package com.habosa.yoursquare;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.google.android.gms.common.api.GoogleApiClient;
 import com.habosa.yoursquare.model.Place;
 import com.habosa.yoursquare.model.PlacesSource;
 
@@ -17,10 +20,12 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
     private static final String TAG = "PlacesAdapter";
 
     private PlacesSource mSource;
+    private GoogleApiClient mGoogleApiClient;
     private Cursor mCursor;
 
-    public PlacesAdapter(PlacesSource source) {
+    public PlacesAdapter(PlacesSource source, GoogleApiClient googleApiClient) {
         mSource = source;
+        mGoogleApiClient = googleApiClient;
         mCursor = source.getAll();
     }
 
@@ -46,6 +51,12 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         holder.titleView.setText(p.getName());
         holder.addressView.setText(p.getAddress());
         holder.tagsView.setText(pd.getTagsString());
+
+        // Load Image
+        int gray = ContextCompat.getColor(holder.imageView.getContext(), android.R.color.darker_gray);
+        holder.imageView.setImageDrawable(null);
+        holder.imageView.setBackgroundColor(gray);
+        new LoadPlaceImageTask(p.getGooglePlaceId(), holder.imageView, mGoogleApiClient).execute();
 
         // Click listener
         holder.deleteButton.setOnClickListener(new View.OnClickListener() {
@@ -82,6 +93,7 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
 
         public TextView titleView;
         public TextView addressView;
+        public ImageView imageView;
         public TextView tagsView;
         public View deleteButton;
 
@@ -90,6 +102,7 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
 
             titleView = (TextView) itemView.findViewById(R.id.place_text_title);
             addressView = (TextView) itemView.findViewById(R.id.place_text_address);
+            imageView = (ImageView) itemView.findViewById(R.id.place_image);
             tagsView = (TextView) itemView.findViewById(R.id.place_tags);
             deleteButton = itemView.findViewById(R.id.place_button_delete);
         }

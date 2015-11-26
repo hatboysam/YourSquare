@@ -21,14 +21,18 @@ import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
+import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.habosa.yoursquare.model.Place;
 import com.habosa.yoursquare.model.PlacesSource;
 
 public class PlacesActivity extends AppCompatActivity implements
-        View.OnClickListener {
+        View.OnClickListener,
+        GoogleApiClient.OnConnectionFailedListener {
 
     private static final String TAG = "PlacesActivity";
     private static final int RC_PLACE_PICKER = 16001;
@@ -36,6 +40,7 @@ public class PlacesActivity extends AppCompatActivity implements
 
     private PlacesSource mPlacesSource;
     private PlacesAdapter mAdapter;
+    private GoogleApiClient mGoogleApiClient;
 
     private FloatingActionButton mFab;
     private RecyclerView mRecycler;
@@ -49,6 +54,12 @@ public class PlacesActivity extends AppCompatActivity implements
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        // Initialize GoogleApiClient
+        mGoogleApiClient = new GoogleApiClient.Builder(this)
+                .enableAutoManage(this, this)
+                .addApi(Places.GEO_DATA_API)
+                .build();
+
         // Initialize Views
         mFab = (FloatingActionButton) findViewById(R.id.fab);
         mRecycler = (RecyclerView) findViewById(R.id.recycler_view_places);
@@ -60,7 +71,7 @@ public class PlacesActivity extends AppCompatActivity implements
         mPlacesSource.open();
 
         // Set up RecyclerView
-        mAdapter = new PlacesAdapter(mPlacesSource);
+        mAdapter = new PlacesAdapter(mPlacesSource, mGoogleApiClient);
         mRecycler.setLayoutManager(new LinearLayoutManager(this));
         mRecycler.setAdapter(mAdapter);
 
@@ -96,6 +107,7 @@ public class PlacesActivity extends AppCompatActivity implements
 
                 // Convert to app notion of "Place"
                 Place myPlace = new Place();
+                myPlace.setGooglePlaceId(place.getId());
                 myPlace.setName(place.getName().toString());
                 myPlace.setAddress(place.getAddress().toString());
                 mPlacesSource.create(myPlace);
@@ -112,10 +124,14 @@ public class PlacesActivity extends AppCompatActivity implements
                                            @NonNull int[] grantResults) {
 
         if (requestCode == RC_PERMISSIONS) {
-            if (grantResults.length == 1 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // TODO(samstern): granted
-            } else {
-                Toast.makeText(this, "Error: location permission required.", Toast.LENGTH_SHORT).show();
+            boolean gotAllPermissions = true;
+            for (int i : grantResults) {
+                gotAllPermissions = gotAllPermissions && (i == PackageManager.PERMISSION_GRANTED);
+            }
+
+            if (!gotAllPermissions) {
+                Toast.makeText(this, "Error: insufficient permissions.", Toast.LENGTH_SHORT).show();
+
             }
         } else {
             super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -123,8 +139,8 @@ public class PlacesActivity extends AppCompatActivity implements
     }
 
     private void onFabClicked() {
-        if (!hasLocationPermissions()) {
-            requestLocationPermissions();
+        if (!hasPermissions()) {
+            requestPermissions();
             return;
         }
 
@@ -162,27 +178,33 @@ public class PlacesActivity extends AppCompatActivity implements
                 .start();
     }
 
-    private boolean hasLocationPermissions() {
-        int res = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
-        return (res == PackageManager.PERMISSION_GRANTED);
+    private boolean hasPermissions() {
+        int locRes = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
+        int storageRes = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        return (locRes == PackageManager.PERMISSION_GRANTED && storageRes == PackageManager.PERMISSION_GRANTED);
     }
 
-    private void requestLocationPermissions() {
-        final String perm = Manifest.permission.ACCESS_FINE_LOCATION;
-        if (ActivityCompat.shouldShowRequestPermissionRationale(this, perm)) {
-            String rationale = "YourSquare needs to access your location to pick a place nearby.";
+    private void requestPermissions() {
+        final String locPerm = Manifest.permission.ACCESS_FINE_LOCATION;
+        final String storagePerm = Manifest.permission.WRITE_EXTERNAL_STORAGE;
+        final String[] allPerms = new String[]{ locPerm, storagePerm };
+
+        boolean explainLocation = ActivityCompat.shouldShowRequestPermissionRationale(this, locPerm);
+        boolean explainStorage = ActivityCompat.shouldShowRequestPermissionRationale(this, storagePerm);
+
+        if (explainLocation || explainStorage) {
+            String rationale = "YourSquare needs to access and save location data to pick places.";
             View layout = findViewById(R.id.layout_places_root);
             Snackbar.make(layout, rationale, Snackbar.LENGTH_INDEFINITE)
                     .setAction(android.R.string.ok, new View.OnClickListener() {
                         @Override
                         public void onClick(View view) {
                             ActivityCompat.requestPermissions(PlacesActivity.this,
-                                    new String[]{ perm }, RC_PERMISSIONS);
+                                    allPerms, RC_PERMISSIONS);
                         }
                     }).show();
         } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{ Manifest.permission.CAMERA }, RC_PERMISSIONS);
+            ActivityCompat.requestPermissions(this, allPerms, RC_PERMISSIONS);
         }
     }
 
@@ -223,5 +245,10 @@ public class PlacesActivity extends AppCompatActivity implements
                 endSearch();
                 break;
         }
+    }
+
+    @Override
+    public void onConnectionFailed(ConnectionResult connectionResult) {
+        Log.e(TAG, "onConnectionFailed:" + connectionResult);
     }
 }

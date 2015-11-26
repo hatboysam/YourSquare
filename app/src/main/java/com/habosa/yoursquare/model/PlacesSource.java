@@ -21,6 +21,7 @@ public class PlacesSource {
 
     private static final String[] COLUMNS = new String[]{
             PlacesSQLHelper.COL_ID,
+            PlacesSQLHelper.COL_GOOGLEPLACEID,
             PlacesSQLHelper.COL_NAME,
             PlacesSQLHelper.COL_ADDRESS
     };
@@ -40,6 +41,7 @@ public class PlacesSource {
     public Place create(Place place) {
         // Insert
         ContentValues contentValues = new ContentValues();
+        contentValues.put(PlacesSQLHelper.COL_GOOGLEPLACEID, place.getGooglePlaceId());
         contentValues.put(PlacesSQLHelper.COL_NAME, place.getName());
         contentValues.put(PlacesSQLHelper.COL_ADDRESS, place.getAddress());
         long id = mDatabase.insert(PlacesSQLHelper.TABLE, null, contentValues);
@@ -92,11 +94,13 @@ public class PlacesSource {
 
     public Place fromCursor(Cursor cursor) {
         int idInd = cursor.getColumnIndex(PlacesSQLHelper.COL_ID);
+        int googlePlaceIdInd = cursor.getColumnIndex(PlacesSQLHelper.COL_GOOGLEPLACEID);
         int nameInd = cursor.getColumnIndex(PlacesSQLHelper.COL_NAME);
         int addressInd = cursor.getColumnIndex(PlacesSQLHelper.COL_ADDRESS);
 
         Place place = new Place();
         place.setId(cursor.getLong(idInd));
+        place.setGooglePlaceId(cursor.getString(googlePlaceIdInd));
         place.setName(cursor.getString(nameInd));
         place.setAddress(cursor.getString(addressInd));
 

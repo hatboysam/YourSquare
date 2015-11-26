@@ -18,6 +18,9 @@ public class PlacesSQLHelper extends SQLiteOpenHelper {
     public static final String COL_ID = "_id";
     public static final String TYPE_ID = "integer primary key autoincrement";
 
+    public static final String COL_GOOGLEPLACEID = "googleplaceid";
+    public static final String TYPE_GOOGLEPLACEID = "text not null";
+
     public static final String COL_NAME = "name";
     public static final String TYPE_NAME = "text not null";
 
@@ -34,6 +37,7 @@ public class PlacesSQLHelper extends SQLiteOpenHelper {
         String createStatement = "CREATE TABLE " +
                 TABLE + "(" +
                 COL_ID + " " + TYPE_ID + "," +
+                COL_GOOGLEPLACEID + " " + TYPE_GOOGLEPLACEID + "," +
                 COL_NAME + " " + TYPE_NAME + "," +
                 COL_ADDRESS + " " + TYPE_ADDRESS +
                 ");";

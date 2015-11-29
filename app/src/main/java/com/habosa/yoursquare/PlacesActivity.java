@@ -16,7 +16,6 @@ import android.support.v7.widget.RecyclerView;
 import android.support.v7.widget.Toolbar;
 import android.text.TextUtils;
 import android.util.Log;
-import android.view.KeyEvent;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -38,6 +37,9 @@ public class PlacesActivity extends AppCompatActivity implements
         GoogleApiClient.OnConnectionFailedListener {
 
     private static final String TAG = "PlacesActivity";
+
+    private static final String KEY_IS_SEARCHING = "key_is_searching";
+
     private static final int RC_PLACE_PICKER = 16001;
     private static final int RC_PERMISSIONS = 16002;
 
@@ -51,12 +53,19 @@ public class PlacesActivity extends AppCompatActivity implements
     private EditText mSearchField;
     private View mEndSearchButton;
 
+    private boolean mIsSearching = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_places);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        // Restore saved instance state
+        if (savedInstanceState != null) {
+            onRestoreInstanceState(savedInstanceState);
+        }
 
         // Initialize GoogleApiClient
         mGoogleApiClient = new GoogleApiClient.Builder(this)
@@ -102,17 +111,24 @@ public class PlacesActivity extends AppCompatActivity implements
         });
 
         // Search text key listener
-        mSearchField.setOnKeyListener(new View.OnKeyListener() {
+        mSearchField.setOnEditorActionListener(new EnterListener() {
             @Override
-            public boolean onKey(View v, int keyCode, KeyEvent event) {
-                if (keyCode == KeyEvent.KEYCODE_ENTER) {
-                    // Consume enter events
-                    hideKeyboard();
-                    return true;
-                }
-                return false;
+            public void onEnter() {
+                hideKeyboard();
             }
         });
+    }
+
+    @Override
+    public void onRestoreInstanceState(Bundle inState) {
+        super.onRestoreInstanceState(inState);
+        mIsSearching = inState.getBoolean(KEY_IS_SEARCHING, false);
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(KEY_IS_SEARCHING, mIsSearching);
     }
 
     @Override
@@ -162,6 +178,15 @@ public class PlacesActivity extends AppCompatActivity implements
         }
     }
 
+    @Override
+    public void onBackPressed() {
+        if (mIsSearching) {
+            endSearch();
+        } else {
+            super.onBackPressed();
+        }
+    }
+
     private void onFabClicked() {
         if (!hasPermissions()) {
             requestPermissions();
@@ -182,14 +207,11 @@ public class PlacesActivity extends AppCompatActivity implements
     }
 
     private void beginSearch() {
+        mIsSearching = true;
+
         // Show the search field
         View searchLayout = findViewById(R.id.layout_search);
         searchLayout.setVisibility(View.VISIBLE);
-        searchLayout.setAlpha(0.0f);
-        ViewCompat.animate(searchLayout)
-                .alpha(1.0f)
-                .setDuration(300)
-                .start();
 
         // Hide the add button
         ViewCompat.animate(mFab)
@@ -197,10 +219,15 @@ public class PlacesActivity extends AppCompatActivity implements
                 .scaleY(0.0f)
                 .setDuration(300)
                 .start();
+
+        // Request typing focus
+        mSearchField.requestFocus();
+        showKeyboard(mSearchField);
     }
 
-    // TODO(samstern): track searching state and remove in onBackPressed
     private void endSearch() {
+        mIsSearching = false;
+
         // Clear search term from field (if it exists, to avoid flicker)
         if (!TextUtils.isEmpty(mSearchField.getText().toString().trim())) {
             mSearchField.setText(null);
@@ -209,10 +236,6 @@ public class PlacesActivity extends AppCompatActivity implements
         // Hide the search field
         View searchLayout = findViewById(R.id.layout_search);
         searchLayout.setVisibility(View.GONE);
-        ViewCompat.animate(searchLayout)
-                .alpha(0.0f)
-                .setDuration(300)
-                .start();
 
         // Show the add button
         ViewCompat.animate(mFab)
@@ -228,6 +251,11 @@ public class PlacesActivity extends AppCompatActivity implements
             InputMethodManager imm = (InputMethodManager)getSystemService(Context.INPUT_METHOD_SERVICE);
             imm.hideSoftInputFromWindow(view.getWindowToken(), 0);
         }
+    }
+
+    private void showKeyboard(View focusView) {
+        InputMethodManager imm = (InputMethodManager) getSystemService(Context.INPUT_METHOD_SERVICE);
+        imm.showSoftInput(focusView, InputMethodManager.SHOW_IMPLICIT);
     }
 
     private boolean hasPermissions() {

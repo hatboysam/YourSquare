@@ -73,6 +73,9 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
     @Override
     protected void onPostExecute(File result) {
         if (result == null) {
+            // TODO(samstern): Placeholder image. Need a few separate resources:
+            //                  1) "Loading" placeholder
+            //                  2) No image found placeholder
             return;
         }
 

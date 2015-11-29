@@ -22,7 +22,7 @@
             android:layout_alignParentTop="true"
             android:layout_alignParentRight="true"
             android:textSize="18sp"
-            android:text="&#x2715;"/>
+            android:text="@string/unicode_x"/>
 
         <TextView
             android:id="@+id/place_text_title"

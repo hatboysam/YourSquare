@@ -56,12 +56,14 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         new LoadPlaceImageTask(p.getGooglePlaceId(), holder.imageView, mGoogleApiClient).execute();
 
         // Delete click listener
+        // TODO(samstern): This logic should probably not be in the Adapter, maybe a custom view?
         holder.deleteButton.setOnClickListener(new View.OnClickListener() {
 
             final int mPosition = position;
 
             @Override
             public void onClick(View v) {
+                // TODO(samstern): delete cached picture, if any
                 mSource.delete(p);
                 setCursor(mSource.getAll());
                 notifyItemRemoved(mPosition);

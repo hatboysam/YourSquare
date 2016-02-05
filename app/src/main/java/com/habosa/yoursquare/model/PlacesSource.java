@@ -4,8 +4,11 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
+import android.support.v4.content.CursorLoader;
 import android.util.Log;
 
+import com.habosa.yoursquare.provider.PlacesProvider;
 import com.habosa.yoursquare.sql.PlacesSQLHelper;
 import com.habosa.yoursquare.sql.QueryBuilder;
 
@@ -15,6 +18,8 @@ import com.habosa.yoursquare.sql.QueryBuilder;
 public class PlacesSource {
 
     private static final String TAG = "PlacesSource";
+
+    private static final String ORDER_BY_ID_DESC = String.format("%s DESC", PlacesSQLHelper.COL_ID);
 
     private SQLiteDatabase mDatabase;
     private PlacesSQLHelper mHelper;
@@ -64,24 +69,24 @@ public class PlacesSource {
         return query(null);
     }
 
-    public Cursor fuzzySearch(String term) {
-        // TODO(samstern): When is this cursor closed?
-        String query = new QueryBuilder()
+    public CursorLoader getLoader(Context context, String query) {
+        Uri uri = PlacesProvider.CONTENT_URI;
+        return new CursorLoader(context, uri, COLUMNS, query, null, ORDER_BY_ID_DESC);
+    }
+
+    public String getFuzzySearchQuery(String term) {
+        return new QueryBuilder()
                 .contains(PlacesSQLHelper.COL_NAME, term)
                 .or()
                 .contains(PlacesSQLHelper.COL_ADDRESS, term)
                 .build();
-
-        return query(query);
     }
 
     public Cursor query(String query) {
         Log.d(TAG, "query:" + query);
-        String orderBy = String.format("%s DESC", PlacesSQLHelper.COL_ID);
         return mDatabase.query(PlacesSQLHelper.TABLE, COLUMNS, query,
-                null, null, null, orderBy);
+                null, null, null, ORDER_BY_ID_DESC);
     }
-
 
     public Place getBy(String column, Object value) {
         String query = new QueryBuilder().equals(column, value).build();
@@ -107,5 +112,4 @@ public class PlacesSource {
 
         return place;
     }
-
 }

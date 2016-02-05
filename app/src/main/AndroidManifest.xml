@@ -26,6 +26,12 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:authorities="com.habosa.yoursquare"
+            android:name=".provider.PlacesProvider"
+            android:exported="false" />
+
     </application>
 
 </manifest>

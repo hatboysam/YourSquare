@@ -26,6 +26,7 @@ import android.widget.Toast;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
+import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
@@ -40,8 +41,11 @@ public class PlacesActivity extends AppCompatActivity implements
 
     private static final String KEY_IS_SEARCHING = "key_is_searching";
 
-    private static final int RC_PLACE_PICKER = 16001;
-    private static final int RC_PERMISSIONS = 16002;
+    private static final int RC_PLACE_PICKER = 101;
+    private static final int RC_PERMISSIONS = 102;
+    private static final int RC_PLAY_SERVICES_ERROR = 103;
+
+    private static final int LOADER_PLACES = 0;
 
     private PlacesSource mPlacesSource;
     private PlacesAdapter mAdapter;
@@ -84,29 +88,31 @@ public class PlacesActivity extends AppCompatActivity implements
         mPlacesSource.open();
 
         // Set up RecyclerView
-        mAdapter = new PlacesAdapter(mPlacesSource, mGoogleApiClient);
+        mAdapter = new PlacesAdapter(this, mPlacesSource, mGoogleApiClient);
         mLayoutManager = new LinearLayoutManager(this);
         mRecycler.setLayoutManager(mLayoutManager);
         mRecycler.setAdapter(mAdapter);
+
+        // Set up Loader and hook it up to PlacesAdapter
+        getSupportLoaderManager().initLoader(LOADER_PLACES, null, mAdapter);
 
         // Click listener(s)
         mFab.setOnClickListener(this);
         mEndSearchButton.setOnClickListener(this);
 
         // Search text change listener
-        mSearchField.addTextChangedListener(new DebouncingWatcher() {
+        mSearchField.addTextChangedListener(new DebouncingWatcher(200) {
             @Override
             public void onNewText(String text) {
                 Log.d(TAG, "onNewText:" + text);
                 text = text.trim();
                 if (!TextUtils.isEmpty(text)) {
                     // Search for entered text
-                    mAdapter.setCursor(mPlacesSource.fuzzySearch(text));
+                    changeQuery(mPlacesSource.getFuzzySearchQuery(text));
                 } else {
                     // Search for all
-                    mAdapter.setCursor(mPlacesSource.getAll());
+                    changeQuery(null);
                 }
-                mAdapter.notifyDataSetChanged();
             }
         });
 
@@ -147,8 +153,11 @@ public class PlacesActivity extends AppCompatActivity implements
                 myPlace.setAddress(place.getAddress().toString());
                 mPlacesSource.create(myPlace);
 
-                // Notify the RecyclerView that a new item is at the top
+                // TODO: Change
                 mAdapter.setCursor(mPlacesSource.getAll());
+
+                // Notify the RecyclerView that a new item is at the top
+                // TODO: This is not gonna work anymore since the load is async
                 mAdapter.notifyItemInserted(0);
                 mRecycler.smoothScrollToPosition(0);
 
@@ -163,6 +172,7 @@ public class PlacesActivity extends AppCompatActivity implements
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
 
+        // TODO: Switch to EasyPermissions
         if (requestCode == RC_PERMISSIONS) {
             boolean gotAllPermissions = true;
             for (int i : grantResults) {
@@ -198,12 +208,21 @@ public class PlacesActivity extends AppCompatActivity implements
             Intent intent = builder.build(this);
             startActivityForResult(intent, RC_PLACE_PICKER);
         } catch (GooglePlayServicesRepairableException e) {
-            // TODO(samstern): Handle
+            // Repairable Play Services error, show the dialog.
             Log.e(TAG, "Place Picker: GMS Repairable", e);
+            GooglePlayServicesUtil.getErrorDialog(e.getConnectionStatusCode(), this,
+                    RC_PLAY_SERVICES_ERROR).show();
         } catch (GooglePlayServicesNotAvailableException e) {
-            // TODO(samstern): Handle
+            // Unrepairable Play Services error, just display a Toast.
             Log.e(TAG, "Place Picker: GMS Not Available", e);
+            Toast.makeText(this, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
         }
+    }
+
+    private void changeQuery(String query) {
+        // Restart the Loader with a new query
+        mAdapter.setQuery(query);
+        getSupportLoaderManager().restartLoader(LOADER_PLACES, null, mAdapter);
     }
 
     private void beginSearch() {

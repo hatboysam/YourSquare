@@ -9,6 +9,7 @@ import android.text.TextWatcher;
  */
 public abstract class DebouncingWatcher implements TextWatcher {
 
+    private int mDelayMillis;
     private String mText;
     private final Handler mHandler = new Handler();
     private final Runnable mRunnable = new Runnable() {
@@ -17,6 +18,10 @@ public abstract class DebouncingWatcher implements TextWatcher {
             onNewText(mText);
         }
     };
+
+    public DebouncingWatcher(int delayMillis) {
+        mDelayMillis = delayMillis;
+    }
 
     @Override
     public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
@@ -28,7 +33,7 @@ public abstract class DebouncingWatcher implements TextWatcher {
     public void afterTextChanged(Editable s) {
         mText = s.toString();
         mHandler.removeCallbacks(mRunnable);
-        mHandler.postDelayed(mRunnable, 200);
+        mHandler.postDelayed(mRunnable, mDelayMillis);
     }
 
     public abstract void onNewText(String text);

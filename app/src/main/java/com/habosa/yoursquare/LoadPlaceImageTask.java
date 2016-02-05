@@ -1,5 +1,6 @@
 package com.habosa.yoursquare;
 
+import android.content.Context;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -22,25 +23,28 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
 
     private static final String TAG = "LoadPlaceImageTask";
 
-    private String mPlaceId;
+    private String mGooglePlaceId;
     private ImageView mTarget;
+    private Context mContext;
     private GoogleApiClient mGoogleApiClient;
 
-    public LoadPlaceImageTask(String placeId, ImageView target, GoogleApiClient googleApiClient) {
-        this.mPlaceId = placeId;
+    public LoadPlaceImageTask(String googlePlaceId, ImageView target, GoogleApiClient googleApiClient) {
+        this.mGooglePlaceId = googlePlaceId;
         this.mTarget = target;
         this.mGoogleApiClient = googleApiClient;
+
+        mContext = mTarget.getContext();
     }
 
     @Override
     protected File doInBackground(Void... params) {
-        File imgCache = getImageFile();
+        File imgCache = PlaceImageUtil.getImageFile(mContext, mGooglePlaceId);
         if (imgCache.exists()) {
             Log.d(TAG, "Returning image from cache:" + imgCache.getAbsolutePath());
             return imgCache;
         }
 
-        PlacePhotoMetadataResult res = Places.GeoDataApi.getPlacePhotos(mGoogleApiClient, mPlaceId).await();
+        PlacePhotoMetadataResult res = Places.GeoDataApi.getPlacePhotos(mGoogleApiClient, mGooglePlaceId).await();
         if (!res.getStatus().isSuccess() || res.getPhotoMetadata().getCount() < 1) {
             Log.d(TAG, "PhotoMetaDataResult failed or empty.");
             return null;
@@ -56,9 +60,10 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
         // Write bitmap to file
         Bitmap bitmap = photoRes.getBitmap();
         try {
-            imgCache.getParentFile().mkdirs();
-            imgCache.createNewFile();
+            // Create file
+            imgCache = PlaceImageUtil.createImageFile(mContext, mGooglePlaceId);
 
+            // Write bitmap
             FileOutputStream fos = new FileOutputStream(imgCache);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
             fos.close();
@@ -84,12 +89,5 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
                 .asBitmap()
                 .load(result)
                 .into(mTarget);
-    }
-
-    private File getImageFile() {
-        File dir = mTarget.getContext().getFilesDir();
-        File file = new File(dir, "cache/img/" + mPlaceId);
-
-        return  file;
     }
 }

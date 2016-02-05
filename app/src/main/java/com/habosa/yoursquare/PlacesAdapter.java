@@ -2,8 +2,13 @@ package com.habosa.yoursquare;
 
 import android.content.Context;
 import android.database.Cursor;
+import android.os.Bundle;
+import android.support.v4.app.LoaderManager;
 import android.support.v4.content.ContextCompat;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,15 +19,21 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.habosa.yoursquare.model.Place;
 import com.habosa.yoursquare.model.PlacesSource;
 
-public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder> {
+public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder> implements
+        LoaderManager.LoaderCallbacks<Cursor> {
 
     private static final String TAG = "PlacesAdapter";
 
+    private Context mContext;
     private PlacesSource mSource;
     private GoogleApiClient mGoogleApiClient;
-    private Cursor mCursor;
 
-    public PlacesAdapter(PlacesSource source, GoogleApiClient googleApiClient) {
+    private CursorLoader mCursorLoader;
+    private Cursor mCursor;
+    private String mQuery = null;
+
+    public PlacesAdapter(Context context, PlacesSource source, GoogleApiClient googleApiClient) {
+        mContext = context;
         mSource = source;
         mGoogleApiClient = googleApiClient;
         mCursor = source.getAll();
@@ -56,15 +67,19 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         new LoadPlaceImageTask(p.getGooglePlaceId(), holder.imageView, mGoogleApiClient).execute();
 
         // Delete click listener
-        // TODO(samstern): This logic should probably not be in the Adapter, maybe a custom view?
         holder.deleteButton.setOnClickListener(new View.OnClickListener() {
 
             final int mPosition = position;
 
             @Override
             public void onClick(View v) {
-                // TODO(samstern): delete cached picture, if any
+                // Delete record and cached place picture.
                 mSource.delete(p);
+                PlaceImageUtil.deleteImageFile(v.getContext(), p.getGooglePlaceId());
+
+                // Reload cursor
+                // TODO(samstern): This should be done by a listener, we should only be concerned
+                //                 with the UI logic (notifyItemRemoved) at this point
                 setCursor(mSource.getAll());
                 notifyItemRemoved(mPosition);
             }
@@ -76,12 +91,35 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         return mCursor.getCount();
     }
 
+    public void setQuery(String query) {
+        mQuery = query;
+    }
+
     public void setCursor(Cursor cursor) {
         if (mCursor != null) {
             mCursor.close();
         }
 
         mCursor = cursor;
+        notifyDataSetChanged();
+    }
+
+    @Override
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        Log.d(TAG, "onCreateLoader");
+        return mSource.getLoader(mContext, mQuery);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        Log.d(TAG, "onLoadFinished");
+        setCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        // TODO(samstern): What to do here?
+        Log.d(TAG, "onLoaderReset");
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {

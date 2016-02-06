@@ -36,7 +36,6 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         mContext = context;
         mSource = source;
         mGoogleApiClient = googleApiClient;
-        mCursor = source.getAll();
     }
 
     @Override
@@ -88,14 +87,20 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
 
     @Override
     public int getItemCount() {
+        if (mCursor == null) {
+            return 0;
+        }
+
         return mCursor.getCount();
     }
 
     public void setQuery(String query) {
         mQuery = query;
+        // TODO(samstern): Can I use this to restart the loader?
     }
 
-    public void setCursor(Cursor cursor) {
+    // TODO: Find all uses of this and notifydatasetchanged
+    private void setCursor(Cursor cursor) {
         if (mCursor != null) {
             mCursor.close();
         }

@@ -3,12 +3,9 @@ package com.habosa.yoursquare;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.support.v4.app.ActivityCompat;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -33,9 +30,15 @@ import com.google.android.gms.location.places.ui.PlacePicker;
 import com.habosa.yoursquare.model.Place;
 import com.habosa.yoursquare.model.PlacesSource;
 
+import java.util.List;
+
+import pub.devrel.easypermissions.AfterPermissionGranted;
+import pub.devrel.easypermissions.EasyPermissions;
+
 public class PlacesActivity extends AppCompatActivity implements
         View.OnClickListener,
-        GoogleApiClient.OnConnectionFailedListener {
+        GoogleApiClient.OnConnectionFailedListener,
+        EasyPermissions.PermissionCallbacks {
 
     private static final String TAG = "PlacesActivity";
 
@@ -46,6 +49,11 @@ public class PlacesActivity extends AppCompatActivity implements
     private static final int RC_PLAY_SERVICES_ERROR = 103;
 
     private static final int LOADER_PLACES = 0;
+
+    private static final String[] PERMS = new String[]{
+            Manifest.permission.ACCESS_FINE_LOCATION,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
 
     private PlacesSource mPlacesSource;
     private PlacesAdapter mAdapter;
@@ -153,8 +161,9 @@ public class PlacesActivity extends AppCompatActivity implements
                 myPlace.setAddress(place.getAddress().toString());
                 mPlacesSource.create(myPlace);
 
-                // TODO: Change
-                mAdapter.setCursor(mPlacesSource.getAll());
+                // Restart the loader
+                mAdapter.setQuery(null);
+                getSupportLoaderManager().restartLoader(LOADER_PLACES, null, mAdapter);
 
                 // Notify the RecyclerView that a new item is at the top
                 // TODO: This is not gonna work anymore since the load is async
@@ -171,21 +180,8 @@ public class PlacesActivity extends AppCompatActivity implements
     public void onRequestPermissionsResult(int requestCode,
                                            @NonNull String[] permissions,
                                            @NonNull int[] grantResults) {
-
-        // TODO: Switch to EasyPermissions
-        if (requestCode == RC_PERMISSIONS) {
-            boolean gotAllPermissions = true;
-            for (int i : grantResults) {
-                gotAllPermissions = gotAllPermissions && (i == PackageManager.PERMISSION_GRANTED);
-            }
-
-            if (!gotAllPermissions) {
-                Toast.makeText(this, "Error: insufficient permissions.", Toast.LENGTH_SHORT).show();
-
-            }
-        } else {
-            super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
     }
 
     @Override
@@ -197,9 +193,14 @@ public class PlacesActivity extends AppCompatActivity implements
         }
     }
 
+    @AfterPermissionGranted(RC_PERMISSIONS)
     private void onFabClicked() {
-        if (!hasPermissions()) {
-            requestPermissions();
+        // Check for location and storage permissions
+        if (!EasyPermissions.hasPermissions(this, PERMS)) {
+            EasyPermissions.requestPermissions(this,
+                    getString(R.string.location_storage_rationale),
+                    RC_PERMISSIONS,
+                    PERMS);
             return;
         }
 
@@ -277,36 +278,6 @@ public class PlacesActivity extends AppCompatActivity implements
         imm.showSoftInput(focusView, InputMethodManager.SHOW_IMPLICIT);
     }
 
-    private boolean hasPermissions() {
-        int locRes = ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION);
-        int storageRes = ActivityCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        return (locRes == PackageManager.PERMISSION_GRANTED && storageRes == PackageManager.PERMISSION_GRANTED);
-    }
-
-    private void requestPermissions() {
-        final String locPerm = Manifest.permission.ACCESS_FINE_LOCATION;
-        final String storagePerm = Manifest.permission.WRITE_EXTERNAL_STORAGE;
-        final String[] allPerms = new String[]{ locPerm, storagePerm };
-
-        boolean explainLocation = ActivityCompat.shouldShowRequestPermissionRationale(this, locPerm);
-        boolean explainStorage = ActivityCompat.shouldShowRequestPermissionRationale(this, storagePerm);
-
-        if (explainLocation || explainStorage) {
-            String rationale = "YourSquare needs to access and save location data to pick places.";
-            View layout = findViewById(R.id.layout_places_root);
-            Snackbar.make(layout, rationale, Snackbar.LENGTH_INDEFINITE)
-                    .setAction(android.R.string.ok, new View.OnClickListener() {
-                        @Override
-                        public void onClick(View view) {
-                            ActivityCompat.requestPermissions(PlacesActivity.this,
-                                    allPerms, RC_PERMISSIONS);
-                        }
-                    }).show();
-        } else {
-            ActivityCompat.requestPermissions(this, allPerms, RC_PERMISSIONS);
-        }
-    }
-
     @Override
     public void onDestroy() {
         super.onDestroy();
@@ -349,5 +320,15 @@ public class PlacesActivity extends AppCompatActivity implements
     @Override
     public void onConnectionFailed(ConnectionResult connectionResult) {
         Log.e(TAG, "onConnectionFailed:" + connectionResult);
+    }
+
+    @Override
+    public void onPermissionsGranted(List<String> perms) {
+        Log.d(TAG, "onPermissionsGranted:" + perms);
+    }
+
+    @Override
+    public void onPermissionsDenied(List<String> perms) {
+        Log.d(TAG, "onPermissionsDenied:" + perms);
     }
 }

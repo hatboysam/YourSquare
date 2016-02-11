@@ -1,5 +1,9 @@
 package com.habosa.yoursquare.model;
 
+import android.database.Cursor;
+
+import com.habosa.yoursquare.sql.PlacesSQLHelper;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -79,5 +83,20 @@ public class Place {
 
     public void setTags(List<String> tags) {
         this.tags = tags;
+    }
+
+    public static Place fromCursor(Cursor cursor) {
+        int idInd = cursor.getColumnIndex(PlacesSQLHelper.COL_ID);
+        int googlePlaceIdInd = cursor.getColumnIndex(PlacesSQLHelper.COL_GOOGLEPLACEID);
+        int nameInd = cursor.getColumnIndex(PlacesSQLHelper.COL_NAME);
+        int addressInd = cursor.getColumnIndex(PlacesSQLHelper.COL_ADDRESS);
+
+        Place place = new Place();
+        place.setId(cursor.getLong(idInd));
+        place.setGooglePlaceId(cursor.getString(googlePlaceIdInd));
+        place.setName(cursor.getString(nameInd));
+        place.setAddress(cursor.getString(addressInd));
+
+        return place;
     }
 }

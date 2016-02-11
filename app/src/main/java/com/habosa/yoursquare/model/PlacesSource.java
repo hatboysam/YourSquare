@@ -3,7 +3,6 @@ package com.habosa.yoursquare.model;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.support.v4.content.CursorLoader;
 import android.util.Log;
@@ -21,8 +20,7 @@ public class PlacesSource {
 
     private static final String ORDER_BY_ID_DESC = String.format("%s DESC", PlacesSQLHelper.COL_ID);
 
-    private SQLiteDatabase mDatabase;
-    private PlacesSQLHelper mHelper;
+    private Context mContext;
 
     private static final String[] COLUMNS = new String[]{
             PlacesSQLHelper.COL_ID,
@@ -32,27 +30,18 @@ public class PlacesSource {
     };
 
     public PlacesSource(Context context) {
-        mHelper = new PlacesSQLHelper(context);
+        mContext = context;
     }
 
-    public void open() {
-        mDatabase = mHelper.getWritableDatabase();
-    }
-
-    public void close() {
-        mHelper.close();
-    }
-
-    public Place create(Place place) {
-        // Insert
+    public void create(Place place) {
+        // Create ContentValues
         ContentValues contentValues = new ContentValues();
         contentValues.put(PlacesSQLHelper.COL_GOOGLEPLACEID, place.getGooglePlaceId());
         contentValues.put(PlacesSQLHelper.COL_NAME, place.getName());
         contentValues.put(PlacesSQLHelper.COL_ADDRESS, place.getAddress());
-        long id = mDatabase.insert(PlacesSQLHelper.TABLE, null, contentValues);
 
-        // Return inserted place
-        return getBy(PlacesSQLHelper.COL_ID, id);
+        // Insert
+        mContext.getContentResolver().insert(PlacesProvider.CONTENT_URI, contentValues);
     }
 
     public boolean delete(Place place) {
@@ -61,7 +50,8 @@ public class PlacesSource {
         }
 
         String query = new QueryBuilder().equals(PlacesSQLHelper.COL_ID, place.getId()).build();
-        int numRows = mDatabase.delete(PlacesSQLHelper.TABLE, query, null);
+        int numRows = mContext.getContentResolver().delete(PlacesProvider.CONTENT_URI, query, null);
+
         return (numRows > 0);
     }
 
@@ -84,32 +74,7 @@ public class PlacesSource {
 
     public Cursor query(String query) {
         Log.d(TAG, "query:" + query);
-        return mDatabase.query(PlacesSQLHelper.TABLE, COLUMNS, query,
-                null, null, null, ORDER_BY_ID_DESC);
-    }
-
-    public Place getBy(String column, Object value) {
-        String query = new QueryBuilder().equals(column, value).build();
-        Cursor cursor = mDatabase.query(PlacesSQLHelper.TABLE, COLUMNS, query,
-                null, null, null, null);
-        cursor.moveToFirst();
-        Place place = fromCursor(cursor);
-        cursor.close();
-        return place;
-    }
-
-    public Place fromCursor(Cursor cursor) {
-        int idInd = cursor.getColumnIndex(PlacesSQLHelper.COL_ID);
-        int googlePlaceIdInd = cursor.getColumnIndex(PlacesSQLHelper.COL_GOOGLEPLACEID);
-        int nameInd = cursor.getColumnIndex(PlacesSQLHelper.COL_NAME);
-        int addressInd = cursor.getColumnIndex(PlacesSQLHelper.COL_ADDRESS);
-
-        Place place = new Place();
-        place.setId(cursor.getLong(idInd));
-        place.setGooglePlaceId(cursor.getString(googlePlaceIdInd));
-        place.setName(cursor.getString(nameInd));
-        place.setAddress(cursor.getString(addressInd));
-
-        return place;
+        return mContext.getContentResolver().query(PlacesProvider.CONTENT_URI, COLUMNS, query,
+                null, ORDER_BY_ID_DESC);
     }
 }

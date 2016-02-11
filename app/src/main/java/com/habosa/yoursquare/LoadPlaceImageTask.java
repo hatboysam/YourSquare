@@ -17,7 +17,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 
 /**
- * Created by samstern on 11/25/15.
+ * Load an image for a Place into an ImageView. Checks cache first, downloads image from
+ * Google Places API if no cache entry exists.
  */
 public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
 
@@ -38,10 +39,10 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
 
     @Override
     protected File doInBackground(Void... params) {
-        File imgCache = PlaceImageUtil.getImageFile(mContext, mGooglePlaceId);
-        if (imgCache.exists()) {
-            Log.d(TAG, "Returning image from cache:" + imgCache.getAbsolutePath());
-            return imgCache;
+        File imgCacheFile = PlaceImageUtil.getImageFile(mContext, mGooglePlaceId);
+        if (imgCacheFile.exists()) {
+            // Log.d(TAG, "Returning image from cache:" + imgCache.getAbsolutePath());
+            return imgCacheFile;
         }
 
         PlacePhotoMetadataResult res = Places.GeoDataApi.getPlacePhotos(mGoogleApiClient, mGooglePlaceId).await();
@@ -50,8 +51,7 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
             return null;
         }
 
-        PlacePhotoResult photoRes = res.getPhotoMetadata().get(0)
-                .getPhoto(mGoogleApiClient).await();
+        PlacePhotoResult photoRes = res.getPhotoMetadata().get(0).getPhoto(mGoogleApiClient).await();
         if (!photoRes.getStatus().isSuccess()) {
             Log.d(TAG, "PlacePhotoResult failed");
             return null;
@@ -61,23 +61,28 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
         Bitmap bitmap = photoRes.getBitmap();
         try {
             // Create file
-            imgCache = PlaceImageUtil.createImageFile(mContext, mGooglePlaceId);
+            imgCacheFile = PlaceImageUtil.createImageFile(mContext, mGooglePlaceId);
 
             // Write bitmap
-            FileOutputStream fos = new FileOutputStream(imgCache);
+            Log.d(TAG, "Writing new image to:" + imgCacheFile.getAbsolutePath());
+            FileOutputStream fos = new FileOutputStream(imgCacheFile);
             bitmap.compress(Bitmap.CompressFormat.PNG, 100, fos);
             fos.close();
+
+            // Close photo metadata
+            res.getPhotoMetadata().release();
         } catch (IOException e) {
-            Log.e(TAG, "Error saving file to " + imgCache.getAbsolutePath(), e);
+            Log.e(TAG, "Error saving file to " + imgCacheFile.getAbsolutePath(), e);
             return null;
         }
 
-        return imgCache;
+        return imgCacheFile;
     }
 
     @Override
     protected void onPostExecute(File result) {
         if (result == null) {
+            Log.w(TAG, "onPostExecute: null result");
             // TODO(samstern): Placeholder image. Need a few separate resources:
             //                  1) "Loading" placeholder
             //                  2) No image found placeholder

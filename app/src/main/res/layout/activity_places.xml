@@ -33,10 +33,12 @@
 
                     <ImageButton
                         android:id="@+id/button_search_back"
-                        style="@style/Widget.AppCompat.Button.Borderless"
+                        android:layout_alignTop="@+id/edit_text_search"
+                        android:layout_alignBottom="@+id/edit_text_search"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:src="@drawable/back_arrow"/>
+                        android:background="?attr/selectableItemBackground"
+                        android:src="@drawable/ic_action_hardware_keyboard_arrow_left"/>
 
                     <EditText
                         android:id="@+id/edit_text_search"

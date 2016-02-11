@@ -1,12 +1,11 @@
 package com.habosa.yoursquare;
 
 import android.content.Context;
+import android.database.ContentObserver;
 import android.database.Cursor;
-import android.os.Bundle;
-import android.support.v4.app.LoaderManager;
+import android.os.AsyncTask;
+import android.os.Handler;
 import android.support.v4.content.ContextCompat;
-import android.support.v4.content.CursorLoader;
-import android.support.v4.content.Loader;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -17,25 +16,36 @@ import android.widget.TextView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.habosa.yoursquare.model.Place;
-import com.habosa.yoursquare.model.PlacesSource;
 
-public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder> implements
-        LoaderManager.LoaderCallbacks<Cursor> {
+public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder> {
 
     private static final String TAG = "PlacesAdapter";
 
-    private Context mContext;
-    private PlacesSource mSource;
     private GoogleApiClient mGoogleApiClient;
-
-    private CursorLoader mCursorLoader;
     private Cursor mCursor;
-    private String mQuery = null;
+    private OnItemRemovedListener mListener;
+    private ContentObserver mObserver;
 
-    public PlacesAdapter(Context context, PlacesSource source, GoogleApiClient googleApiClient) {
-        mContext = context;
-        mSource = source;
+    public interface OnItemRemovedListener {
+        void onPlaceRemoved(Place p);
+    }
+
+    public PlacesAdapter(GoogleApiClient googleApiClient, OnItemRemovedListener listener) {
         mGoogleApiClient = googleApiClient;
+        mListener = listener;
+
+        // Initialize ContentObserver
+        mObserver = new ContentObserver(new Handler()) {
+            @Override
+            public boolean deliverSelfNotifications() {
+                return true;
+            }
+
+            @Override
+            public void onChange(boolean selfChange) {
+                Log.d(TAG, "onChange:" + selfChange);
+            }
+        };
     }
 
     @Override
@@ -48,10 +58,13 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
     }
 
     @Override
-    public void onBindViewHolder(ViewHolder holder, final int position) {
+    public void onBindViewHolder(final ViewHolder holder, int position) {
+        // Clear ViewHolder
+        holder.clear();
+
         // Get Place from Cursor
         mCursor.moveToPosition(position);
-        final Place p = mSource.fromCursor(mCursor);
+        final Place p = Place.fromCursor(mCursor);
         final Place.Decorator pd = new Place.Decorator(p);
 
         // Display place info
@@ -63,26 +76,27 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         int gray = ContextCompat.getColor(holder.imageView.getContext(), android.R.color.darker_gray);
         holder.imageView.setImageDrawable(null);
         holder.imageView.setBackgroundColor(gray);
-        new LoadPlaceImageTask(p.getGooglePlaceId(), holder.imageView, mGoogleApiClient).execute();
+        new LoadPlaceImageTask(p.getGooglePlaceId(), holder.imageView, mGoogleApiClient)
+                .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
 
         // Delete click listener
         holder.deleteButton.setOnClickListener(new View.OnClickListener() {
-
-            final int mPosition = position;
-
             @Override
             public void onClick(View v) {
-                // Delete record and cached place picture.
-                mSource.delete(p);
-                PlaceImageUtil.deleteImageFile(v.getContext(), p.getGooglePlaceId());
-
-                // Reload cursor
-                // TODO(samstern): This should be done by a listener, we should only be concerned
-                //                 with the UI logic (notifyItemRemoved) at this point
-                setCursor(mSource.getAll());
-                notifyItemRemoved(mPosition);
+                mListener.onPlaceRemoved(p);
+                notifyItemRemoved(holder.getAdapterPosition());
             }
         });
+    }
+
+    @Override
+    public long getItemId(int position) {
+        if (mCursor == null) {
+            return 0;
+        }
+
+        mCursor.moveToPosition(position);
+        return Place.fromCursor(mCursor).getId();
     }
 
     @Override
@@ -94,37 +108,15 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         return mCursor.getCount();
     }
 
-    public void setQuery(String query) {
-        mQuery = query;
-        // TODO(samstern): Can I use this to restart the loader?
-    }
-
-    // TODO: Find all uses of this and notifydatasetchanged
-    private void setCursor(Cursor cursor) {
+    public void setCursor(Cursor cursor) {
         if (mCursor != null) {
             mCursor.close();
+            mCursor.unregisterContentObserver(mObserver);
         }
 
         mCursor = cursor;
+        mCursor.registerContentObserver(mObserver);
         notifyDataSetChanged();
-    }
-
-    @Override
-    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        Log.d(TAG, "onCreateLoader");
-        return mSource.getLoader(mContext, mQuery);
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        Log.d(TAG, "onLoadFinished");
-        setCursor(data);
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Cursor> loader) {
-        // TODO(samstern): What to do here?
-        Log.d(TAG, "onLoaderReset");
     }
 
     public static class ViewHolder extends RecyclerView.ViewHolder {
@@ -143,6 +135,13 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
             imageView = (ImageView) itemView.findViewById(R.id.place_image);
             tagsView = (TextView) itemView.findViewById(R.id.place_tags);
             deleteButton = itemView.findViewById(R.id.place_button_delete);
+        }
+
+        public void clear() {
+            titleView.setText("...");
+            addressView.setText("...");
+            imageView.setImageDrawable(null);
+            tagsView.setText(null);
         }
     }
 

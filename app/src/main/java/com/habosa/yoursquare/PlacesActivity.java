@@ -3,9 +3,12 @@ package com.habosa.yoursquare;
 import android.Manifest;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.Loader;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
@@ -37,6 +40,7 @@ import pub.devrel.easypermissions.EasyPermissions;
 
 public class PlacesActivity extends AppCompatActivity implements
         View.OnClickListener,
+        LoaderManager.LoaderCallbacks<Cursor>,
         GoogleApiClient.OnConnectionFailedListener,
         EasyPermissions.PermissionCallbacks {
 
@@ -65,6 +69,8 @@ public class PlacesActivity extends AppCompatActivity implements
     private EditText mSearchField;
     private View mEndSearchButton;
 
+    // TODO(samstern): rotation persist query
+    private String mSearchQuery;
     private boolean mIsSearching = false;
 
     @Override
@@ -93,16 +99,29 @@ public class PlacesActivity extends AppCompatActivity implements
 
         // Open Database
         mPlacesSource = new PlacesSource(this);
-        mPlacesSource.open();
 
         // Set up RecyclerView
-        mAdapter = new PlacesAdapter(this, mPlacesSource, mGoogleApiClient);
+        mAdapter = new PlacesAdapter(mGoogleApiClient, new PlacesAdapter.OnItemRemovedListener() {
+            @Override
+            public void onPlaceRemoved(Place p) {
+                Log.d(TAG, "onPlaceRemoved:" + p.getName());
+                // Delete record and cached place picture.
+                // TODO(samstern): Should I be doing this off the UI thread?
+                mPlacesSource.delete(p);
+                PlaceImageUtil.deleteImageFile(PlacesActivity.this, p.getGooglePlaceId());
+
+                // Reload cursor
+                changeQuery(null);
+                // TODO(samstern): some sort of 'data valid' state
+            }
+        });
         mLayoutManager = new LinearLayoutManager(this);
+        mRecycler.setHasFixedSize(true);
         mRecycler.setLayoutManager(mLayoutManager);
         mRecycler.setAdapter(mAdapter);
 
         // Set up Loader and hook it up to PlacesAdapter
-        getSupportLoaderManager().initLoader(LOADER_PLACES, null, mAdapter);
+        getSupportLoaderManager().initLoader(LOADER_PLACES, null, this);
 
         // Click listener(s)
         mFab.setOnClickListener(this);
@@ -162,8 +181,7 @@ public class PlacesActivity extends AppCompatActivity implements
                 mPlacesSource.create(myPlace);
 
                 // Restart the loader
-                mAdapter.setQuery(null);
-                getSupportLoaderManager().restartLoader(LOADER_PLACES, null, mAdapter);
+                changeQuery(null);
 
                 // Notify the RecyclerView that a new item is at the top
                 // TODO: This is not gonna work anymore since the load is async
@@ -222,8 +240,8 @@ public class PlacesActivity extends AppCompatActivity implements
 
     private void changeQuery(String query) {
         // Restart the Loader with a new query
-        mAdapter.setQuery(query);
-        getSupportLoaderManager().restartLoader(LOADER_PLACES, null, mAdapter);
+        mSearchQuery = query;
+        getSupportLoaderManager().restartLoader(LOADER_PLACES, null, this);
     }
 
     private void beginSearch() {
@@ -257,6 +275,9 @@ public class PlacesActivity extends AppCompatActivity implements
         View searchLayout = findViewById(R.id.layout_search);
         searchLayout.setVisibility(View.GONE);
 
+        // Hide the keyboard
+        hideKeyboard();
+
         // Show the add button
         ViewCompat.animate(mFab)
                 .scaleX(1.0f)
@@ -279,9 +300,21 @@ public class PlacesActivity extends AppCompatActivity implements
     }
 
     @Override
-    public void onDestroy() {
-        super.onDestroy();
-        mPlacesSource.close();
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
+        Log.d(TAG, "onCreateLoader");
+        return mPlacesSource.getLoader(this, mSearchQuery);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+        Log.d(TAG, "onLoadFinished");
+        mAdapter.setCursor(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        // TODO(samstern): What to do here?
+        Log.d(TAG, "onLoaderReset");
     }
 
     @Override

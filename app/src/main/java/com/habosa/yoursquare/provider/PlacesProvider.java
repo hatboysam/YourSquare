@@ -35,10 +35,17 @@ public class PlacesProvider extends ContentProvider {
     @Override
     public Cursor query(@NonNull Uri uri, String[] projection, String selection,
                         String[] selectionArgs, String sortOrder) {
-        // TODO(samstern): What to do with the URI? I think I should be using it to get the table name.
         Log.d(TAG, "query:" + uri.toString());
-        return mDatabase.query(PlacesSQLHelper.TABLE, projection, selection, selectionArgs,
+        Cursor cursor = mDatabase.query(PlacesSQLHelper.TABLE, projection, selection, selectionArgs,
                 null, null, sortOrder);
+
+        if (getContext() != null) {
+            cursor.setNotificationUri(getContext().getContentResolver(), CONTENT_URI);
+        } else {
+            Log.w(TAG, "query: null context, could not set up resolver.");
+        }
+
+        return cursor;
     }
 
     @Nullable
@@ -52,18 +59,33 @@ public class PlacesProvider extends ContentProvider {
     public Uri insert(@NonNull Uri uri, ContentValues values) {
         Log.d(TAG, "insert:" + values);
         long id = mDatabase.insert(PlacesSQLHelper.TABLE, null, values);
+        notifyChange();
+
         return Uri.withAppendedPath(CONTENT_URI, String.valueOf(id));
     }
 
     @Override
     public int delete(@NonNull Uri uri, String selection, String[] selectionArgs) {
         Log.d(TAG, "delete:" + selection);
+        notifyChange();
+
         return mDatabase.delete(PlacesSQLHelper.TABLE, selection, selectionArgs);
     }
 
     @Override
     public int update(@NonNull Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         Log.d(TAG, "update:" + values);
+        notifyChange();
+
         return mDatabase.update(PlacesSQLHelper.TABLE, values, selection, selectionArgs);
+    }
+
+    private void notifyChange() {
+        if (getContext() == null) {
+            Log.w(TAG, "notifyChange: null context");
+            return;
+        }
+
+        getContext().getContentResolver().notifyChange(CONTENT_URI, null);
     }
 }

@@ -91,7 +91,7 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
 
         Glide.with(mTarget.getContext())
                 .fromFile()
-                .asBitmap()
+                .crossFade()
                 .load(result)
                 .into(mTarget);
     }

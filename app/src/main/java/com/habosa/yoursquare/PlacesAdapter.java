@@ -22,8 +22,10 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
     private static final String TAG = "PlacesAdapter";
 
     private GoogleApiClient mGoogleApiClient;
-    private Cursor mCursor;
     private OnItemRemovedListener mListener;
+
+    private boolean mDataValid = false;
+    private Cursor mCursor;
     private ContentObserver mObserver;
 
     public interface OnItemRemovedListener {
@@ -33,6 +35,9 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
     public PlacesAdapter(GoogleApiClient googleApiClient, OnItemRemovedListener listener) {
         mGoogleApiClient = googleApiClient;
         mListener = listener;
+
+        // Stable IDs
+        setHasStableIds(true);
 
         // Initialize ContentObserver
         mObserver = new ContentObserver(new Handler()) {
@@ -44,6 +49,9 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
             @Override
             public void onChange(boolean selfChange) {
                 Log.d(TAG, "onChange:" + selfChange);
+
+                // Invalidate data, wait for new Cursor
+                mDataValid = false;
             }
         };
     }
@@ -59,6 +67,10 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
 
     @Override
     public void onBindViewHolder(final ViewHolder holder, int position) {
+        if (!hasData()) {
+            throw new IllegalStateException("Can't bind ViewHolder: invalid data.");
+        }
+
         // Clear ViewHolder
         holder.clear();
 
@@ -84,14 +96,13 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
             @Override
             public void onClick(View v) {
                 mListener.onPlaceRemoved(p);
-                notifyItemRemoved(holder.getAdapterPosition());
             }
         });
     }
 
     @Override
     public long getItemId(int position) {
-        if (mCursor == null) {
+        if (!hasData()) {
             return 0;
         }
 
@@ -101,14 +112,19 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
 
     @Override
     public int getItemCount() {
-        if (mCursor == null) {
+        if (!hasData()) {
             return 0;
         }
 
         return mCursor.getCount();
     }
 
+    private boolean hasData() {
+        return (mCursor != null && mDataValid);
+    }
+
     public void setCursor(Cursor cursor) {
+        Log.d(TAG, "setCursor");
         if (mCursor != null) {
             mCursor.close();
             mCursor.unregisterContentObserver(mObserver);
@@ -116,6 +132,7 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
 
         mCursor = cursor;
         mCursor.registerContentObserver(mObserver);
+        mDataValid = true;
         notifyDataSetChanged();
     }
 

@@ -112,7 +112,6 @@ public class PlacesActivity extends AppCompatActivity implements
 
                 // Reload cursor
                 changeQuery(null);
-                // TODO(samstern): some sort of 'data valid' state
             }
         });
         mLayoutManager = new LinearLayoutManager(this);
@@ -183,11 +182,8 @@ public class PlacesActivity extends AppCompatActivity implements
                 // Restart the loader
                 changeQuery(null);
 
-                // Notify the RecyclerView that a new item is at the top
-                // TODO: This is not gonna work anymore since the load is async
-                mAdapter.notifyItemInserted(0);
+                // Scroll to top
                 mRecycler.smoothScrollToPosition(0);
-
             } else if (resultCode != RESULT_CANCELED) {
                 Toast.makeText(this, "Error opening Place Picker", Toast.LENGTH_SHORT).show();
             }

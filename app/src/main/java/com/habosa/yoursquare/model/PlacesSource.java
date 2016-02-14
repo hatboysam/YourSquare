@@ -26,7 +26,9 @@ public class PlacesSource {
             PlacesSQLHelper.COL_ID,
             PlacesSQLHelper.COL_GOOGLEPLACEID,
             PlacesSQLHelper.COL_NAME,
-            PlacesSQLHelper.COL_ADDRESS
+            PlacesSQLHelper.COL_ADDRESS,
+            PlacesSQLHelper.COL_LAT,
+            PlacesSQLHelper.COL_LNG
     };
 
     public PlacesSource(Context context) {
@@ -34,17 +36,23 @@ public class PlacesSource {
     }
 
     public void create(Place place) {
+        Log.d(TAG, "create:" + place);
+
         // Create ContentValues
         ContentValues contentValues = new ContentValues();
         contentValues.put(PlacesSQLHelper.COL_GOOGLEPLACEID, place.getGooglePlaceId());
         contentValues.put(PlacesSQLHelper.COL_NAME, place.getName());
         contentValues.put(PlacesSQLHelper.COL_ADDRESS, place.getAddress());
+        contentValues.put(PlacesSQLHelper.COL_LAT, place.getLat());
+        contentValues.put(PlacesSQLHelper.COL_LNG, place.getLng());
 
         // Insert
         mContext.getContentResolver().insert(PlacesProvider.CONTENT_URI, contentValues);
     }
 
     public boolean delete(Place place) {
+        Log.d(TAG, "delete:" + place);
+
         if (place.getId() == 0L) {
             throw new IllegalArgumentException("Can't delete place without ID!");
         }
@@ -53,10 +61,6 @@ public class PlacesSource {
         int numRows = mContext.getContentResolver().delete(PlacesProvider.CONTENT_URI, query, null);
 
         return (numRows > 0);
-    }
-
-    public Cursor getAll() {
-        return query(null);
     }
 
     public CursorLoader getLoader(Context context, String query) {

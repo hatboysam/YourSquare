@@ -6,13 +6,19 @@ import com.habosa.yoursquare.sql.PlacesSQLHelper;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class Place {
 
+    // Fields from Place record
     private long id;
     private String googlePlaceId;
     private String name;
     private String address;
+    private double lat;
+    private double lng;
+
+    // Tags, from JOIN
     private List<String> tags = new ArrayList<>();
 
     public static class Decorator {
@@ -77,6 +83,22 @@ public class Place {
         this.address = address;
     }
 
+    public double getLat() {
+        return lat;
+    }
+
+    public void setLat(double lat) {
+        this.lat = lat;
+    }
+
+    public double getLng() {
+        return lng;
+    }
+
+    public void setLng(double lng) {
+        this.lng = lng;
+    }
+
     public List<String> getTags() {
         return tags;
     }
@@ -85,17 +107,26 @@ public class Place {
         this.tags = tags;
     }
 
+    @Override
+    public String toString() {
+        return String.format(Locale.US, "Place{%s - %s (%f, %f)}", name, address, lat, lng);
+    }
+
     public static Place fromCursor(Cursor cursor) {
         int idInd = cursor.getColumnIndex(PlacesSQLHelper.COL_ID);
         int googlePlaceIdInd = cursor.getColumnIndex(PlacesSQLHelper.COL_GOOGLEPLACEID);
         int nameInd = cursor.getColumnIndex(PlacesSQLHelper.COL_NAME);
         int addressInd = cursor.getColumnIndex(PlacesSQLHelper.COL_ADDRESS);
+        int latInd = cursor.getColumnIndex(PlacesSQLHelper.COL_LAT);
+        int lngInd = cursor.getColumnIndex(PlacesSQLHelper.COL_LNG);
 
         Place place = new Place();
         place.setId(cursor.getLong(idInd));
         place.setGooglePlaceId(cursor.getString(googlePlaceIdInd));
         place.setName(cursor.getString(nameInd));
         place.setAddress(cursor.getString(addressInd));
+        place.setLat(cursor.getDouble(latInd));
+        place.setLng(cursor.getDouble(lngInd));
 
         return place;
     }

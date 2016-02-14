@@ -27,6 +27,12 @@ public class PlacesSQLHelper extends SQLiteOpenHelper {
     public static final String COL_ADDRESS = "address";
     public static final String TYPE_ADDRESS = "text not null";
 
+    public static final String COL_LAT = "lat";
+    public static final String TYPE_LAT = "real not null";
+
+    public static final String COL_LNG = "lng";
+    public static final String TYPE_LNG = "real not null";
+
     public PlacesSQLHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
     }
@@ -39,7 +45,9 @@ public class PlacesSQLHelper extends SQLiteOpenHelper {
                 COL_ID + " " + TYPE_ID + "," +
                 COL_GOOGLEPLACEID + " " + TYPE_GOOGLEPLACEID + "," +
                 COL_NAME + " " + TYPE_NAME + "," +
-                COL_ADDRESS + " " + TYPE_ADDRESS +
+                COL_ADDRESS + " " + TYPE_ADDRESS + "," +
+                COL_LAT + " " + TYPE_LAT + "," +
+                COL_LNG + " " + TYPE_LNG +
                 ");";
         db.execSQL(createStatement);
     }

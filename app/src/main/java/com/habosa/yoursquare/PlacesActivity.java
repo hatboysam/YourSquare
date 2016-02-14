@@ -170,13 +170,15 @@ public class PlacesActivity extends AppCompatActivity implements
             Log.d(TAG, "RC_PLACE_PICKER:" + resultCode + ":" + data);
             if (resultCode == RESULT_OK) {
                 // Extract gms "Place"
-                com.google.android.gms.location.places.Place place = PlacePicker.getPlace(data, this);
+                com.google.android.gms.location.places.Place place = PlacePicker.getPlace(this, data);
 
                 // Convert to app notion of "Place"
                 Place myPlace = new Place();
                 myPlace.setGooglePlaceId(place.getId());
                 myPlace.setName(place.getName().toString());
                 myPlace.setAddress(place.getAddress().toString());
+                myPlace.setLat(place.getLatLng().latitude);
+                myPlace.setLng(place.getLatLng().longitude);
                 mPlacesSource.create(myPlace);
 
                 // Restart the loader

@@ -18,7 +18,7 @@ public class PlacesProvider extends ContentProvider {
 
     public static final Uri CONTENT_URI = Uri.parse("content://com.habosa.yoursquare/places");
 
-    private static final String TAG = "PlacesProvder";
+    private static final String TAG = "PlacesProvider";
 
     private PlacesSQLHelper mHelper;
     private SQLiteDatabase mDatabase;

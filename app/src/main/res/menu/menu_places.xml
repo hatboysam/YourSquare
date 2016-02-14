@@ -9,6 +9,10 @@
         android:icon="@android:drawable/ic_menu_search"
         app:showAsAction="ifRoom" />
 
+    <item
+        android:id="@+id/action_map"
+        android:title="Map"
+        app:showAsAction="never" />
 
     <item
         android:id="@+id/action_settings"

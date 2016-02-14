@@ -328,6 +328,9 @@ public class PlacesActivity extends AppCompatActivity implements
             case R.id.action_settings:
                 // TODO(samstern): settings screen
                 return true;
+            case R.id.action_map:
+                startActivity(new Intent(this, PlacesMapActivity.class));
+                return true;
             case R.id.action_search:
                 beginSearch();
                 return true;

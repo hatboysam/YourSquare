@@ -14,7 +14,7 @@
 
         <meta-data
             android:name="com.google.android.geo.API_KEY"
-            android:value="AIzaSyBVD2T5ondo0B1i5rDTJpbahTKIFE7xUD0"/>
+            android:value="@string/maps_api_key" />
 
         <activity
             android:name=".PlacesActivity"
@@ -27,9 +27,14 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".PlacesMapActivity"
+            android:label="@string/title_activity_places_map"
+            android:theme="@style/AppTheme" />
+
         <provider
-            android:authorities="com.habosa.yoursquare"
             android:name=".provider.PlacesProvider"
+            android:authorities="com.habosa.yoursquare"
             android:exported="false" />
 
     </application>

@@ -6,9 +6,9 @@ import android.location.Location;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
 
@@ -28,7 +28,7 @@ import java.util.List;
 
 import pub.devrel.easypermissions.EasyPermissions;
 
-public class PlacesMapActivity extends FragmentActivity implements
+public class PlacesMapActivity extends AppCompatActivity implements
         OnMapReadyCallback,
         LoaderManager.LoaderCallbacks<Cursor>,
         GoogleApiClient.OnConnectionFailedListener,
@@ -46,8 +46,6 @@ public class PlacesMapActivity extends FragmentActivity implements
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_places_map);
-
-        // TODO(samstern): Need to make sure I have location permission here too, right?
 
         // Places
         mPlacesSource = new PlacesSource(this);

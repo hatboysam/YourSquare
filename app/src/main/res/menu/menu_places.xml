@@ -6,13 +6,14 @@
     <item
         android:id="@+id/action_search"
         android:title="@string/search"
-        android:icon="@android:drawable/ic_menu_search"
+        android:icon="@drawable/ic_search_white_24dp"
         app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/action_map"
         android:title="Map"
-        app:showAsAction="never" />
+        android:icon="@drawable/ic_map_white_24dp"
+        app:showAsAction="ifRoom" />
 
     <item
         android:id="@+id/action_settings"

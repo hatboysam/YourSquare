@@ -1,4 +1,4 @@
-package com.habosa.yoursquare;
+package com.habosa.yoursquare.ui;
 
 import android.view.KeyEvent;
 import android.view.inputmethod.EditorInfo;

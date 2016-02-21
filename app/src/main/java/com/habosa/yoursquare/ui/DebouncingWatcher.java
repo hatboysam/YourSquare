@@ -1,4 +1,4 @@
-package com.habosa.yoursquare;
+package com.habosa.yoursquare.ui;
 
 import android.os.Handler;
 import android.text.Editable;

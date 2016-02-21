@@ -11,6 +11,7 @@ import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.places.PlacePhotoMetadataResult;
 import com.google.android.gms.location.places.PlacePhotoResult;
 import com.google.android.gms.location.places.Places;
+import com.habosa.yoursquare.util.PlaceImageUtil;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -91,6 +92,7 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
 
         Glide.with(mTarget.getContext())
                 .fromFile()
+                .fitCenter()
                 .crossFade()
                 .load(result)
                 .into(mTarget);

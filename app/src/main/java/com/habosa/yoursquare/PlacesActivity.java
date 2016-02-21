@@ -32,6 +32,11 @@ import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.habosa.yoursquare.model.Place;
 import com.habosa.yoursquare.model.PlacesSource;
+import com.habosa.yoursquare.ui.DebouncingWatcher;
+import com.habosa.yoursquare.ui.EnterListener;
+import com.habosa.yoursquare.util.LeakUtil;
+import com.habosa.yoursquare.util.PlaceImageUtil;
+import com.squareup.leakcanary.RefWatcher;
 
 import java.util.List;
 
@@ -59,6 +64,8 @@ public class PlacesActivity extends AppCompatActivity implements
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
 
+    private RefWatcher mRefWatcher;
+
     private PlacesSource mPlacesSource;
     private PlacesAdapter mAdapter;
     private LinearLayoutManager mLayoutManager;
@@ -76,6 +83,8 @@ public class PlacesActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        mRefWatcher = LeakUtil.install(this.getApplication());
+
         setContentView(R.layout.activity_places);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);

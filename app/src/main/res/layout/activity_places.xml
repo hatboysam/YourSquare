@@ -61,8 +61,9 @@
         android:id="@+id/recycler_view_places"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:paddingBottom="5dp"
-        android:paddingTop="5dp"
+        android:background="@color/grey_300"
+        android:clipToPadding="false"
+        android:paddingTop="@dimen/recycler_item_margin"
         app:layout_behavior="@string/appbar_scrolling_view_behavior"
         tools:listitem="@layout/item_place"/>
 
@@ -72,6 +73,6 @@
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|right"
         android:layout_margin="@dimen/fab_margin"
-        android:src="@drawable/fab_plus" />
+        android:src="@drawable/ic_add_white_24dp" />
 
 </android.support.design.widget.CoordinatorLayout>

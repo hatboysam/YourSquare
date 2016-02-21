@@ -1,4 +1,4 @@
-package com.habosa.yoursquare;
+package com.habosa.yoursquare.util;
 
 import android.content.Context;
 

@@ -24,15 +24,13 @@ import com.google.android.gms.maps.model.MarkerOptions;
 import com.habosa.yoursquare.model.Place;
 import com.habosa.yoursquare.model.PlacesSource;
 
-import java.util.List;
-
 import pub.devrel.easypermissions.EasyPermissions;
 
 public class PlacesMapActivity extends AppCompatActivity implements
         OnMapReadyCallback,
         LoaderManager.LoaderCallbacks<Cursor>,
         GoogleApiClient.OnConnectionFailedListener,
-        EasyPermissions.PermissionCallbacks, GoogleApiClient.ConnectionCallbacks {
+        GoogleApiClient.ConnectionCallbacks {
 
     private static final String TAG = "PlacesMap";
     private static final int LOADER_PLACES = 0;
@@ -148,10 +146,4 @@ public class PlacesMapActivity extends AppCompatActivity implements
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         EasyPermissions.onRequestPermissionsResult(requestCode, permissions, grantResults, this);
     }
-
-    @Override
-    public void onPermissionsGranted(List<String> perms) {}
-
-    @Override
-    public void onPermissionsDenied(List<String> perms) {}
 }

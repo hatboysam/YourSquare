@@ -38,16 +38,13 @@ import com.habosa.yoursquare.util.LeakUtil;
 import com.habosa.yoursquare.util.PlaceImageUtil;
 import com.squareup.leakcanary.RefWatcher;
 
-import java.util.List;
-
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
 
 public class PlacesActivity extends AppCompatActivity implements
         View.OnClickListener,
         LoaderManager.LoaderCallbacks<Cursor>,
-        GoogleApiClient.OnConnectionFailedListener,
-        EasyPermissions.PermissionCallbacks {
+        GoogleApiClient.OnConnectionFailedListener {
 
     private static final String TAG = "PlacesActivity";
 
@@ -365,13 +362,4 @@ public class PlacesActivity extends AppCompatActivity implements
         Log.e(TAG, "onConnectionFailed:" + connectionResult);
     }
 
-    @Override
-    public void onPermissionsGranted(List<String> perms) {
-        Log.d(TAG, "onPermissionsGranted:" + perms);
-    }
-
-    @Override
-    public void onPermissionsDenied(List<String> perms) {
-        Log.d(TAG, "onPermissionsDenied:" + perms);
-    }
 }

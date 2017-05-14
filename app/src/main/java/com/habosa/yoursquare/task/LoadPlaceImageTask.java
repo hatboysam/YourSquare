@@ -2,15 +2,15 @@ package com.habosa.yoursquare.task;
 
 import android.content.Context;
 import android.graphics.Bitmap;
-import android.os.AsyncTask;
+import android.support.annotation.WorkerThread;
 import android.util.Log;
-import android.widget.ImageView;
 
-import com.bumptech.glide.Glide;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.places.PlacePhotoMetadataResult;
 import com.google.android.gms.location.places.PlacePhotoResult;
 import com.google.android.gms.location.places.Places;
+import com.google.android.gms.tasks.Task;
+import com.google.android.gms.tasks.TaskCompletionSource;
 import com.habosa.yoursquare.util.PlaceImageUtil;
 
 import java.io.File;
@@ -21,38 +21,45 @@ import java.io.IOException;
  * Load an image for a Place into an ImageView. Checks cache first, downloads image from
  * Google Places API if no cache entry exists.
  */
-public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
+public class LoadPlaceImageTask {
 
     private static final String TAG = "LoadPlaceImageTask";
 
-    private String mGooglePlaceId;
-    private ImageView mTarget;
-    private Context mContext;
-    private GoogleApiClient mGoogleApiClient;
+    public static Task<File> load(final Context context, final GoogleApiClient client,
+                                  final String googlePlaceId) {
+        final TaskCompletionSource<File> source = new TaskCompletionSource<>();
 
-    public LoadPlaceImageTask(String googlePlaceId, ImageView target, GoogleApiClient googleApiClient) {
-        this.mGooglePlaceId = googlePlaceId;
-        this.mTarget = target;
-        this.mGoogleApiClient = googleApiClient;
+        TaskThreads.EXECUTOR.execute(new Runnable() {
+            @Override
+            public void run() {
+                File imageFile = loadImageFile(context, client, googlePlaceId);
+                if (imageFile != null) {
+                    source.setResult(imageFile);
+                } else {
+                    source.setException(new Exception("Failed to load file: " + googlePlaceId));
+                }
+            }
+        });
 
-        mContext = mTarget.getContext();
+
+        return source.getTask();
     }
 
-    @Override
-    protected File doInBackground(Void... params) {
-        File imgCacheFile = PlaceImageUtil.getImageFile(mContext, mGooglePlaceId);
+    @WorkerThread
+    private static File loadImageFile(Context context, GoogleApiClient client, String googlePlaceId) {
+        File imgCacheFile = PlaceImageUtil.getImageFile(context, googlePlaceId);
         if (imgCacheFile.exists()) {
             // Log.d(TAG, "Returning image from cache:" + imgCache.getAbsolutePath());
             return imgCacheFile;
         }
 
-        PlacePhotoMetadataResult res = Places.GeoDataApi.getPlacePhotos(mGoogleApiClient, mGooglePlaceId).await();
+        PlacePhotoMetadataResult res = Places.GeoDataApi.getPlacePhotos(client, googlePlaceId).await();
         if (!res.getStatus().isSuccess() || res.getPhotoMetadata().getCount() < 1) {
             Log.d(TAG, "PhotoMetaDataResult failed or empty.");
             return null;
         }
 
-        PlacePhotoResult photoRes = res.getPhotoMetadata().get(0).getPhoto(mGoogleApiClient).await();
+        PlacePhotoResult photoRes = res.getPhotoMetadata().get(0).getPhoto(client).await();
         if (!photoRes.getStatus().isSuccess()) {
             Log.d(TAG, "PlacePhotoResult failed");
             return null;
@@ -62,7 +69,7 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
         Bitmap bitmap = photoRes.getBitmap();
         try {
             // Create file
-            imgCacheFile = PlaceImageUtil.createImageFile(mContext, mGooglePlaceId);
+            imgCacheFile = PlaceImageUtil.createImageFile(context, googlePlaceId);
 
             // Write bitmap
             Log.d(TAG, "Writing new image to:" + imgCacheFile.getAbsolutePath());
@@ -78,23 +85,5 @@ public class LoadPlaceImageTask extends AsyncTask<Void, Void, File> {
         }
 
         return imgCacheFile;
-    }
-
-    @Override
-    protected void onPostExecute(File result) {
-        if (result == null) {
-            Log.w(TAG, "onPostExecute: null result");
-            // TODO(samstern): Placeholder image. Need a few separate resources:
-            //                  1) "Loading" placeholder
-            //                  2) No image found placeholder
-            return;
-        }
-
-        Glide.with(mTarget.getContext())
-                .fromFile()
-                .fitCenter()
-                .crossFade()
-                .load(result)
-                .into(mTarget);
     }
 }

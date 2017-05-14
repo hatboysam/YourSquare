@@ -3,8 +3,8 @@ package com.habosa.yoursquare;
 import android.content.Context;
 import android.database.ContentObserver;
 import android.database.Cursor;
-import android.os.AsyncTask;
 import android.os.Handler;
+import android.support.annotation.NonNull;
 import android.support.v4.content.ContextCompat;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
@@ -14,9 +14,14 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.habosa.yoursquare.model.Place;
 import com.habosa.yoursquare.task.LoadPlaceImageTask;
+
+import java.io.File;
 
 public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder> {
 
@@ -89,8 +94,28 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         int gray = ContextCompat.getColor(holder.imageView.getContext(), android.R.color.darker_gray);
         holder.imageView.setImageDrawable(null);
         holder.imageView.setBackgroundColor(gray);
-        new LoadPlaceImageTask(p.getGooglePlaceId(), holder.imageView, mGoogleApiClient)
-                .executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+
+        // TODO(samstern): holder.imageView can move before this tasks finishes, make sure
+        //                 we load into the right view by finding by ID.
+        LoadPlaceImageTask.load(mGoogleApiClient.getContext(), mGoogleApiClient, p.getGooglePlaceId())
+                .addOnSuccessListener(new OnSuccessListener<File>() {
+                    @Override
+                    public void onSuccess(File file) {
+                        // Load the file into the imageview
+                        Glide.with(holder.imageView.getContext())
+                                .fromFile()
+                                .fitCenter()
+                                .crossFade()
+                                .load(file)
+                                .into(holder.imageView);
+                    }
+                })
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "image:onFailure", e);
+                    }
+                });
 
         // Delete click listener
         holder.deleteButton.setOnClickListener(new View.OnClickListener() {

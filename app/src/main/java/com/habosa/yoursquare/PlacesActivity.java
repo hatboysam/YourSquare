@@ -5,9 +5,11 @@ import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
+import android.support.design.widget.Snackbar;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.Loader;
 import android.support.v4.view.ViewCompat;
@@ -22,7 +24,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
-import android.widget.Toast;
 
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
@@ -57,6 +58,7 @@ public class PlacesActivity extends AppCompatActivity implements
     private static final int RC_PLACE_PICKER = 101;
     private static final int RC_PERMISSIONS = 102;
     private static final int RC_PLAY_SERVICES_ERROR = 103;
+    private static final int RC_PICK_FILE = 104;
 
     private static final int LOADER_PLACES = 0;
 
@@ -194,8 +196,13 @@ public class PlacesActivity extends AppCompatActivity implements
                 // Scroll to top
                 mRecycler.smoothScrollToPosition(0);
             } else if (resultCode != RESULT_CANCELED) {
-                Toast.makeText(this, "Error opening Place Picker", Toast.LENGTH_SHORT).show();
+                showSnackbar("Error opening Place Picker");
             }
+        }
+
+        if (requestCode == RC_PICK_FILE && resultCode == RESULT_OK) {
+            Uri uri = data.getData();
+            importPlaces(uri);
         }
     }
 
@@ -239,7 +246,7 @@ public class PlacesActivity extends AppCompatActivity implements
         } catch (GooglePlayServicesNotAvailableException e) {
             // Unrepairable Play Services error, just display a Toast.
             Log.e(TAG, "Place Picker: GMS Not Available", e);
-            Toast.makeText(this, e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+            showSnackbar(e.getLocalizedMessage());
         }
     }
 
@@ -297,21 +304,46 @@ public class PlacesActivity extends AppCompatActivity implements
                 .addOnSuccessListener(this, new OnSuccessListener<File>() {
                     @Override
                     public void onSuccess(File file) {
-                        // TODO(samstern): Make a showSnackbar method and use it
-                        Toast.makeText(PlacesActivity.this,
-                                "Exported to " + file.getName(),
-                                Toast.LENGTH_SHORT).show();
+                        showSnackbar("Exported to " + file.getName());
                     }
                 })
                 .addOnFailureListener(this, new OnFailureListener() {
                     @Override
                     public void onFailure(@NonNull Exception e) {
                         Log.w(TAG, e);
-                        Toast.makeText(PlacesActivity.this,
-                                "Export failed.",
-                                Toast.LENGTH_SHORT).show();
+                        showSnackbar("Export failed.");
                     }
                 });
+    }
+
+    private void importPlaces(Uri uri) {
+        // TODO(samstern): Warn user this will replace everything.
+        ImportExportTasks.importFromFile(this, uri)
+                .addOnSuccessListener(this, new OnSuccessListener<Void>() {
+                    @Override
+                    public void onSuccess(Void aVoid) {
+                        showSnackbar("Import success.");
+                    }
+                })
+                .addOnFailureListener(this, new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, "import:onFailure", e);
+                        showSnackbar("Import failed.");
+                    }
+                });
+    }
+
+    private void openFilePicker() {
+        Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+        Uri uri = Uri.fromFile(ImportExportTasks.getDirectory());
+
+        intent.setDataAndType(uri, "*/*");
+        startActivityForResult(Intent.createChooser(intent, "Choose File"), RC_PICK_FILE);
+    }
+
+    private void showSnackbar(String message) {
+        Snackbar.make(findViewById(android.R.id.content), message, Snackbar.LENGTH_SHORT).show();
     }
 
     private void hideKeyboard() {
@@ -366,6 +398,10 @@ public class PlacesActivity extends AppCompatActivity implements
                 return true;
             case R.id.action_export:
                 exportPlaces();
+                return true;
+            case R.id.action_import:
+                openFilePicker();
+                return true;
         }
 
         return super.onOptionsItemSelected(item);

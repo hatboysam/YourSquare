@@ -8,4 +8,6 @@
     <string name="location_storage_rationale">
         YourSquare needs location permission to help you pick nearby places, and storage permission to save your places.
     </string>
+    <string name="export">Export</string>
+    <string name="map">Map</string>
 </resources>

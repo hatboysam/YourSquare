@@ -1,6 +1,7 @@
 package com.habosa.yoursquare;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
@@ -30,13 +31,16 @@ import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.habosa.yoursquare.model.Place;
 import com.habosa.yoursquare.model.PlacesSource;
+import com.habosa.yoursquare.task.ImportExportTasks;
 import com.habosa.yoursquare.ui.DebouncingWatcher;
 import com.habosa.yoursquare.ui.EnterListener;
-import com.habosa.yoursquare.util.LeakUtil;
 import com.habosa.yoursquare.util.PlaceImageUtil;
-import com.squareup.leakcanary.RefWatcher;
+
+import java.io.File;
 
 import pub.devrel.easypermissions.AfterPermissionGranted;
 import pub.devrel.easypermissions.EasyPermissions;
@@ -61,8 +65,6 @@ public class PlacesActivity extends AppCompatActivity implements
             Manifest.permission.WRITE_EXTERNAL_STORAGE
     };
 
-    private RefWatcher mRefWatcher;
-
     private PlacesSource mPlacesSource;
     private PlacesAdapter mAdapter;
     private LinearLayoutManager mLayoutManager;
@@ -80,7 +82,6 @@ public class PlacesActivity extends AppCompatActivity implements
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        mRefWatcher = LeakUtil.install(this.getApplication());
 
         setContentView(R.layout.activity_places);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
@@ -290,6 +291,29 @@ public class PlacesActivity extends AppCompatActivity implements
                 .start();
     }
 
+    @SuppressLint("MissingPermission")
+    private void exportPlaces() {
+        ImportExportTasks.exportToFile(this)
+                .addOnSuccessListener(this, new OnSuccessListener<File>() {
+                    @Override
+                    public void onSuccess(File file) {
+                        // TODO(samstern): Make a showSnackbar method and use it
+                        Toast.makeText(PlacesActivity.this,
+                                "Exported to " + file.getName(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .addOnFailureListener(this, new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        Log.w(TAG, e);
+                        Toast.makeText(PlacesActivity.this,
+                                "Export failed.",
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
     private void hideKeyboard() {
         View view = this.getCurrentFocus();
         if (view != null) {
@@ -340,6 +364,8 @@ public class PlacesActivity extends AppCompatActivity implements
             case R.id.action_search:
                 beginSearch();
                 return true;
+            case R.id.action_export:
+                exportPlaces();
         }
 
         return super.onOptionsItemSelected(item);

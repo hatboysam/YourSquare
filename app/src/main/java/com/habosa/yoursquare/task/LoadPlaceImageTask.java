@@ -1,4 +1,4 @@
-package com.habosa.yoursquare;
+package com.habosa.yoursquare.task;
 
 import android.content.Context;
 import android.graphics.Bitmap;

@@ -16,7 +16,7 @@ import android.widget.TextView;
 
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.habosa.yoursquare.model.Place;
-import com.habosa.yoursquare.util.LeakUtil;
+import com.habosa.yoursquare.task.LoadPlaceImageTask;
 
 public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder> {
 
@@ -129,7 +129,6 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         if (mCursor != null) {
             mCursor.close();
             mCursor.unregisterContentObserver(mObserver);
-            LeakUtil.getRefWatcher().watch(mCursor, "adapter_old_cursor");
         }
 
         mCursor = cursor;

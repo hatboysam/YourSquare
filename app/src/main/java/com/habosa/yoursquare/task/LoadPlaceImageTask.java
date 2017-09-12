@@ -5,12 +5,14 @@ import android.graphics.Bitmap;
 import android.support.annotation.WorkerThread;
 import android.util.Log;
 
-import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.places.PlacePhotoMetadataResult;
-import com.google.android.gms.location.places.PlacePhotoResult;
+import com.google.android.gms.location.places.GeoDataClient;
+import com.google.android.gms.location.places.PlacePhotoMetadataBuffer;
+import com.google.android.gms.location.places.PlacePhotoResponse;
 import com.google.android.gms.location.places.Places;
+import com.google.android.gms.location.places.PlacesOptions;
 import com.google.android.gms.tasks.Task;
 import com.google.android.gms.tasks.TaskCompletionSource;
+import com.google.android.gms.tasks.Tasks;
 import com.habosa.yoursquare.util.PlaceImageUtil;
 
 import java.io.File;
@@ -25,14 +27,13 @@ public class LoadPlaceImageTask {
 
     private static final String TAG = "LoadPlaceImageTask";
 
-    public static Task<File> load(final Context context, final GoogleApiClient client,
-                                  final String googlePlaceId) {
+    public static Task<File> load(final Context context, final String googlePlaceId) {
         final TaskCompletionSource<File> source = new TaskCompletionSource<>();
 
         TaskThreads.EXECUTOR.execute(new Runnable() {
             @Override
             public void run() {
-                File imageFile = loadImageFile(context, client, googlePlaceId);
+                File imageFile = loadImageFile(context, googlePlaceId);
                 if (imageFile != null) {
                     source.setResult(imageFile);
                 } else {
@@ -46,22 +47,35 @@ public class LoadPlaceImageTask {
     }
 
     @WorkerThread
-    private static File loadImageFile(Context context, GoogleApiClient client, String googlePlaceId) {
+    private static File loadImageFile(Context context, String googlePlaceId) {
+        GeoDataClient client = Places.getGeoDataClient(context,
+                new PlacesOptions.Builder().build());
+
         File imgCacheFile = PlaceImageUtil.getImageFile(context, googlePlaceId);
         if (imgCacheFile.exists()) {
             // Log.d(TAG, "Returning image from cache:" + imgCache.getAbsolutePath());
             return imgCacheFile;
         }
 
-        PlacePhotoMetadataResult res = Places.GeoDataApi.getPlacePhotos(client, googlePlaceId).await();
-        if (!res.getStatus().isSuccess() || res.getPhotoMetadata().getCount() < 1) {
-            Log.d(TAG, "PhotoMetaDataResult failed or empty.");
+        PlacePhotoMetadataBuffer buffer;
+        try {
+            buffer = Tasks.await(client.getPlacePhotos(googlePlaceId)).getPhotoMetadata();
+        } catch (Exception e) {
+            Log.w(TAG, "PhotoMetadata load failed.", e);
             return null;
         }
 
-        PlacePhotoResult photoRes = res.getPhotoMetadata().get(0).getPhoto(client).await();
-        if (!photoRes.getStatus().isSuccess()) {
-            Log.d(TAG, "PlacePhotoResult failed");
+        if (buffer.getCount() < 1) {
+            Log.d(TAG, "PhotoMetadataBuffer empty");
+            return null;
+        }
+
+
+        PlacePhotoResponse photoRes;
+        try {
+            photoRes = Tasks.await(client.getPhoto(buffer.get(0)));
+        } catch (Exception e) {
+            Log.w(TAG, "PlacePhoto load failed", e);
             return null;
         }
 
@@ -78,7 +92,7 @@ public class LoadPlaceImageTask {
             fos.close();
 
             // Close photo metadata
-            res.getPhotoMetadata().release();
+            buffer.release();
         } catch (IOException e) {
             Log.e(TAG, "Error saving file to " + imgCacheFile.getAbsolutePath(), e);
             return null;

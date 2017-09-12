@@ -30,7 +30,6 @@ import com.google.android.gms.common.GooglePlayServicesNotAvailableException;
 import com.google.android.gms.common.GooglePlayServicesRepairableException;
 import com.google.android.gms.common.GooglePlayServicesUtil;
 import com.google.android.gms.common.api.GoogleApiClient;
-import com.google.android.gms.location.places.Places;
 import com.google.android.gms.location.places.ui.PlacePicker;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -70,7 +69,6 @@ public class PlacesActivity extends AppCompatActivity implements
     private PlacesSource mPlacesSource;
     private PlacesAdapter mAdapter;
     private LinearLayoutManager mLayoutManager;
-    private GoogleApiClient mGoogleApiClient;
 
     private FloatingActionButton mFab;
     private RecyclerView mRecycler;
@@ -86,7 +84,7 @@ public class PlacesActivity extends AppCompatActivity implements
         super.onCreate(savedInstanceState);
 
         setContentView(R.layout.activity_places);
-        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
         // Restore saved instance state
@@ -94,23 +92,17 @@ public class PlacesActivity extends AppCompatActivity implements
             onRestoreInstanceState(savedInstanceState);
         }
 
-        // Initialize GoogleApiClient
-        mGoogleApiClient = new GoogleApiClient.Builder(this)
-                .enableAutoManage(this, this)
-                .addApi(Places.GEO_DATA_API)
-                .build();
-
         // Initialize Views
-        mFab = (FloatingActionButton) findViewById(R.id.fab);
-        mRecycler = (RecyclerView) findViewById(R.id.recycler_view_places);
-        mSearchField = (EditText) findViewById(R.id.edit_text_search);
+        mFab = findViewById(R.id.fab);
+        mRecycler = findViewById(R.id.recycler_view_places);
+        mSearchField = findViewById(R.id.edit_text_search);
         mEndSearchButton = findViewById(R.id.button_search_back);
 
         // Open Database
         mPlacesSource = new PlacesSource(this);
 
         // Set up RecyclerView
-        mAdapter = new PlacesAdapter(mGoogleApiClient, new PlacesAdapter.OnItemRemovedListener() {
+        mAdapter = new PlacesAdapter(this, new PlacesAdapter.OnItemRemovedListener() {
             @Override
             public void onPlaceRemoved(Place p) {
                 Log.d(TAG, "onPlaceRemoved:" + p.getName());

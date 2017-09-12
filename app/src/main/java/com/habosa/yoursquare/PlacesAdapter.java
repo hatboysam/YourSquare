@@ -15,7 +15,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.bumptech.glide.Glide;
-import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.habosa.yoursquare.model.Place;
@@ -27,7 +26,7 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
 
     private static final String TAG = "PlacesAdapter";
 
-    private GoogleApiClient mGoogleApiClient;
+    private Context mContext;
     private OnItemRemovedListener mListener;
 
     private boolean mDataValid = false;
@@ -38,8 +37,8 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         void onPlaceRemoved(Place p);
     }
 
-    public PlacesAdapter(GoogleApiClient googleApiClient, OnItemRemovedListener listener) {
-        mGoogleApiClient = googleApiClient;
+    public PlacesAdapter(Context context, OnItemRemovedListener listener) {
+        mContext = context;
         mListener = listener;
 
         // Stable IDs
@@ -97,7 +96,7 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
 
         // TODO(samstern): holder.imageView can move before this tasks finishes, make sure
         //                 we load into the right view by finding by ID.
-        LoadPlaceImageTask.load(mGoogleApiClient.getContext(), mGoogleApiClient, p.getGooglePlaceId())
+        LoadPlaceImageTask.load(mContext, p.getGooglePlaceId())
                 .addOnSuccessListener(new OnSuccessListener<File>() {
                     @Override
                     public void onSuccess(File file) {
@@ -173,10 +172,10 @@ public class PlacesAdapter extends RecyclerView.Adapter<PlacesAdapter.ViewHolder
         public ViewHolder(View itemView) {
             super(itemView);
 
-            titleView = (TextView) itemView.findViewById(R.id.place_text_title);
-            addressView = (TextView) itemView.findViewById(R.id.place_text_address);
-            imageView = (ImageView) itemView.findViewById(R.id.place_image);
-            tagsView = (TextView) itemView.findViewById(R.id.place_tags);
+            titleView = itemView.findViewById(R.id.place_text_title);
+            addressView = itemView.findViewById(R.id.place_text_address);
+            imageView = itemView.findViewById(R.id.place_image);
+            tagsView = itemView.findViewById(R.id.place_tags);
             deleteButton = itemView.findViewById(R.id.place_button_delete);
         }
 

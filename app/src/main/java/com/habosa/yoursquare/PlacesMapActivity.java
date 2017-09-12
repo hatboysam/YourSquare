@@ -55,18 +55,15 @@ public class PlacesMapActivity extends AppCompatActivity implements
     }
 
     @Override
-    protected void onStart() {
-        super.onStart();
-        enableLocation();
-    }
-
-    @Override
     public void onMapReady(GoogleMap googleMap) {
         Log.d(TAG, "onMapReady");
         mMap = googleMap;
 
         // Begin loading places
         getSupportLoaderManager().initLoader(LOADER_PLACES, null, this);
+
+        // Set location
+        enableLocation();
     }
 
     @SuppressWarnings("ResourceType") // Ignore permission linter

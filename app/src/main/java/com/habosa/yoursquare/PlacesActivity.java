@@ -11,6 +11,7 @@ import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
 import android.support.v4.app.LoaderManager;
+import android.support.v4.content.FileProvider;
 import android.support.v4.content.Loader;
 import android.support.v4.view.ViewCompat;
 import android.support.v7.app.AppCompatActivity;
@@ -328,7 +329,13 @@ public class PlacesActivity extends AppCompatActivity implements
 
     private void openFilePicker() {
         Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-        Uri uri = Uri.fromFile(ImportExportTasks.getDirectory());
+
+        Uri uri = FileProvider.getUriForFile(
+                this,
+                "com.habosa.yoursquare.provider",
+                ImportExportTasks.getDirectory());
+
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
 
         intent.setDataAndType(uri, "*/*");
         startActivityForResult(Intent.createChooser(intent, "Choose File"), RC_PICK_FILE);
